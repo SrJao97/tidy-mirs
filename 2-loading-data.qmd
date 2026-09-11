@@ -1,0 +1,76 @@
+---
+title: "Loading spectral data"
+author: Franck Albinet
+date: last-modified
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(here)
+library(tidyverse)
+source(here("R", "io.R"))
+source(here("R", "prepare_data.R"))
+```
+
+
+```{r}
+SPECTRA_DIR = here("data/RT_spectra")
+SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
+```
+
+## Loading OPUS `.O` spectra files
+
+To load a batch of OPUS file contained in a directory:
+
+```{r}
+spectra <- read_opus_tbl(SPECTRA_DIR)
+spectra
+```
+
+## Averaging spectra replicates
+
+```{r}
+spectra_mean <- spectra |>
+    mutate(smp_id = str_extract(spc_id, "RT_\\d+")) |>
+    group_by(smp_id) |>
+    summarize(across(starts_with("wn_"), mean))
+```
+
+## Loading soil properties
+
+```{r}
+soil_prop <- read_csv(SOIL_PROP_FILE)
+```
+
+```{r}
+view(soil_prop)
+```
+
+## Joining spectra and soil properties
+
+```{r}
+data <- spectra_mean |> 
+    left_join(soil_prop, by = c("smp_id" = "sample_id"))
+```
+
+To take a look at only non-wavenumbers columns:
+
+```{r}
+data |> 
+    select(!starts_with("wn_"))
+```
+
+## Wrapping it all in one helper function
+
+
+```{r}
+data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)
+```

@@ -1,0 +1,300 @@
+---
+title: "Exploratory Data Analysis"
+author: Franck Albinet
+date: last-modified
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(here)
+library(tidyverse)
+library(tidymodels)
+source(here("R", "prepare_data.R"))
+theme_set(theme_bw())
+tidymodels_prefer()
+```
+
+
+```{r}
+SPECTRA_DIR = here("data/RT_spectra")
+SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
+```
+
+
+## Getting data
+
+```{r}
+data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)
+```
+
+## Summary statistics
+
+```{r}
+data |> 
+    select(!starts_with("wn_")) |>
+    summary()
+```
+
+```{r}
+glimpse(data)
+```
+
+```{r}
+data |> 
+  skimr::skim(!starts_with("wn_"))
+```
+
+## Soil properties histogram
+
+### A single histogram
+
+```{r}
+data |> 
+    ggplot(aes(x = clay_perc)) +
+    geom_histogram()
+```
+
+or log10-transformed:
+
+```{r}
+data |>
+  mutate(potassium_cmolkg = log10(potassium_cmolkg)) |>
+  ggplot(aes(x = potassium_cmolkg)) +
+  geom_histogram(bins=10, na.rm = TRUE)
+```
+
+or log10-transformed but using the original values as label: 
+
+```{r}
+data |>
+    ggplot(aes(x = potassium_cmolkg)) +
+    geom_histogram(bins=10) +
+    scale_x_log10()
+```
+
+### All soil properties
+
+```{r}
+soil_long <- data |> 
+  select(!starts_with("wn_")) |>
+  pivot_longer(
+    where(is.numeric),
+    names_to = "soil_prop",
+    values_to = "value"
+  )
+```
+
+
+```{r}
+soil_long |> 
+  filter(soil_prop != "pH_H20") |>
+  ggplot(aes(x = value)) +
+  geom_histogram(bins=10) +
+  facet_wrap(~soil_prop, scales = "free_x") +
+  scale_x_log10()
+```
+
+## Soil properties QQ-plots
+
+```{r}
+soil_long |> 
+  ggplot(aes(sample = value)) +
+  stat_qq(na.rm = TRUE) +
+  stat_qq_line(na.rm = TRUE) +
+  facet_wrap(~soil_prop, scales = "free")
+```
+
+
+```{r}
+soil_long |> 
+  filter(value > 0) |>
+  mutate(log_value = log(value)) |>
+  ggplot(aes(sample = log_value)) +
+  stat_qq(na.rm = TRUE) +
+  stat_qq_line(na.rm = TRUE) +
+  facet_wrap(~soil_prop, scales = "free")
+```
+## Soil properties correlation
+
+```{r}
+data |>
+  filter(carbon_org_perc > 0, phosporus_mgkg > 0) |>
+  ggplot(aes(
+    x = carbon_org_perc,
+    y = phosporus_mgkg
+  )) +
+  geom_point() +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    x = "Organic carbon (%)",
+    y = "Phosphorus (mg/kg)"
+  )
+```
+
+## Spectra
+
+
+```{r}
+spectra <- data |>
+  pivot_longer(
+    cols = starts_with("wn_"),
+    names_to = "wavenumber",
+    names_prefix = "wn_",
+    names_transform = list(wavenumber = as.numeric),
+    values_to = "absorbance"
+  )
+```
+
+
+```{r}
+ggplot(spectra, aes(wavenumber, absorbance, group = smp_id, colour = smp_id)) +
+  geom_line() +
+  scale_x_reverse() +
+  labs(
+    x = "Wavenumber",
+    y = "Absorbance",
+    colour = "Sample"
+  ) +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
+  geom_line(alpha = 0.35, colour = "steelblue") +
+  scale_x_reverse() +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
+    geom_line(alpha = 0.35, colour = "steelblue") +
+    scale_x_reverse(
+        breaks = seq(500, 4000, by = 250),
+        minor_breaks = seq(500, 4000, by = 125)) +
+    labs(
+        x = "Wavenumber (cm-1)",
+        y = "Absorbance",
+        colour = "Sample") +
+    theme_minimal()
+```
+
+
+```{r}
+ggplot(
+  spectra,
+  aes(
+    x = wavenumber,
+    y = absorbance,
+    group = smp_id,
+    colour = carbon_org_perc
+  )
+) +
+  geom_line(alpha = 0.5) +
+  scale_x_reverse(
+    breaks = seq(500, 4000, by = 250),
+    minor_breaks = seq(500, 4000, by = 125)
+  ) +
+  scale_colour_viridis_c(
+    name = "Organic carbon (%)",
+    na.value = "grey70"
+  ) +
+  labs(
+    x = "Wavenumber (cm⁻¹)",
+    y = "Absorbance"
+  ) +
+  theme_minimal()
+
+```
+
+
+```{r}
+spectra_grouped <- spectra |>
+  mutate(
+    carbon_group = ntile(carbon_org_perc, 4),
+    carbon_group = factor(
+      carbon_group,
+      labels = c("Lowest", "Low–middle", "High–middle", "Highest")
+    )
+  )
+```
+
+
+```{r}
+spectra_grouped <- spectra |>
+  filter(!is.na(carbon_org_perc)) |>
+  mutate(
+    carbon_group = ntile(carbon_org_perc, 4),
+    carbon_group = factor(
+      carbon_group,
+      labels = c("Lowest", "Low–middle", "High–middle", "Highest")
+    )
+  )
+```
+
+```{r}
+ggplot(
+  spectra_grouped,
+  aes(wavenumber, absorbance, group = smp_id)
+) +
+  geom_line(alpha = 0.35, colour = "steelblue") +
+  facet_wrap(~ carbon_group) +
+  scale_x_reverse() +
+  labs(
+    x = "Wavenumber (cm⁻¹)",
+    y = "Absorbance",
+    title = "Spectra grouped by organic carbon"
+  )
+#   theme_minimal()
+```
+
+
+```{r}
+spectra_no_na <- spectra |>
+  filter(!is.na(carbon_org_perc))
+```
+
+```{r}
+ggplot(
+  spectra_no_na,
+  aes(wavenumber, absorbance, group = smp_id)
+) +
+  geom_line(alpha = 0.35, colour = "steelblue") +
+  scale_x_reverse(
+    breaks = seq(500, 4000, by = 250),
+    minor_breaks = seq(500, 4000, by = 125)
+  ) +
+  labs(
+    x = "Wavenumber (cm⁻¹)",
+    y = "Absorbance"
+  ) +
+  theme_minimal()
+```
+```{r}
+ggplot(
+  spectra_no_na,
+  aes(wavenumber, absorbance, group = smp_id)
+) +
+  geom_line(alpha = 0.35, colour = "steelblue") +
+  scale_x_reverse(
+    breaks = seq(2200, 2700, by = 100),
+    minor_breaks = seq(2200, 2700, by = 50)
+  ) +
+  coord_cartesian(xlim = c(2700, 2200)) +
+  labs(
+    x = "Wavenumber (cm⁻¹)",
+    y = "Absorbance"
+  ) +
+  theme_minimal()
+
+```

@@ -1,0 +1,7 @@
+## Packages installed
+
+- here
+- tidymodels
+- opusreader2
+- readr (not required if tidyverse)
+- tidyverse

@@ -1,0 +1,68 @@
+---
+title: "Reading Opus files"
+author: Franck Albinet
+date: last-modified
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Setup
+
+```{r}
+#| label: libraries
+
+# library(tidyverse)
+# library(tidymodels)
+# library(prospectr)
+# library(resemble)
+library(here)
+library(tibble)
+library(dplyr)
+# library(plsmod)
+# library(rules)
+# library(Cubist)
+# library(finetune)
+# library(lme4)   # required by finetune::tune_race_anova()
+# library(kernlab)
+# library(hexbin)
+# library(ranger)
+# library(xgboost)
+
+# source(here("R", "utils.R"))
+# source(here("R", "load.R"))
+# source(here("R", "steps.R"))
+# source(here("R", "split.R"))
+# source(here("R", "lssvm.R"))
+
+# library(doParallel)
+# registerDoParallel(cores = parallel::detectCores() - 1L)
+```
+
+```{r}
+  library(opusreader2)
+```
+
+```{r}
+SPECTRA_SRC = here("data/RT_spectra")
+```
+
+```{r}
+read_opus_tbl <- function(path) {
+  spectra <- read_opus(dsn = path)
+  wns <- sprintf("wn_%.1f", spectra[[1]]$ab$wavenumbers)
+  
+  map_dfr(names(spectra), function(id) {
+    ab_vec <- as.vector(spectra[[id]]$ab$data)
+    names(ab_vec) <- wns
+    as_tibble_row(ab_vec) |>
+      mutate(smp_id = tools::file_path_sans_ext(id), .before = 1)
+  })
+}
+```

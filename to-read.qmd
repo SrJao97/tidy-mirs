@@ -1,0 +1,6 @@
+- https://here.r-lib.org/articles/here.html
+- opusreader2: https://spectral-cockpit.github.io/opusreader2/articles/opusreader2_introduction.html
+- https://dplyr.tidyverse.org/articles/dplyr.html
+- https://regex101.com/
+- https://positron.posit.co/keyboard-shortcuts.html
+- https://www.tidymodels.org/start/recipes/
