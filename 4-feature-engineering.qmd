@@ -20,6 +20,7 @@ library(tidymodels)
 library(skimr)
 source(here("R", "prepare_data.R"))
 source(here("R", "steps.R"))
+source(here("R", "plots.R"))
 theme_set(theme_bw())
 tidymodels_prefer()
 ```
@@ -37,6 +38,7 @@ TARGET <- "clay_perc"
 
 # --- Preprocessing ----------------------------------------------------------
 RESAMPLE_BY <- 5L
+RESAMPLING_GRID <- seq(3995, 600, by = -5)
 SG_W        <- 15L   # tuned in tune_sg.qmd
 SG_P        <- 3L    # tuned in tune_sg.qmd
 SG_M        <- 1L    # first derivative — confirmed in tune_sg.qmd
@@ -55,11 +57,7 @@ data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)
 
 ```{r}
 spc_cols <- names(data)[startsWith(names(data), "wn_")]
-
-meta_cols <- setdiff(
-  names(data),
-  c(TARGET, spc_cols)
-)
+meta_cols <- setdiff(names(data), c(TARGET, spc_cols))
 
 rec <- recipe(data) |>
   update_role(all_of(TARGET),  new_role = "outcome") |>
@@ -74,20 +72,14 @@ summary(rec)
 ### Resampling
 
 ```{r}
-rec <- rec |>
+rec_res <- rec |>
   step_log(all_outcomes(), base = 10) |>
-  step_resample(
-    grid = seq(3995, 600, by = -5),
-    interpol = "linear"
-    )
-  # step_resample(by = RESAMPLE_BY) 
-  # step_snv() |>
-  # step_sg(w = SG_W, p = SG_P, m = SG_M)
+  step_resample(grid = RESAMPLING_GRID)
 ```
 
 
 ```{r}
-rec_prep <- prep(rec, training = data, verbose = TRUE)
+rec_prep <- prep(rec_res, training = data, verbose = TRUE)
 
 data_processed <- bake(
   rec_prep,
@@ -96,38 +88,66 @@ data_processed <- bake(
 ```
 
 ```{r}
-spectra <- data_processed |>
-  pivot_longer(
-    cols = starts_with("wn_"),
-    names_to = "wavenumber",
-    names_prefix = "wn_",
-    names_transform = list(wavenumber = as.numeric),
-    values_to = "absorbance"
-  )
-```
-
-```{r}
-ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
-    geom_line(alpha = 0.35, colour = "steelblue") +
-    scale_x_reverse(
-        breaks = seq(500, 4000, by = 250),
-        minor_breaks = seq(500, 4000, by = 125)) +
-    labs(
-        x = "Wavenumber (cm-1)",
-        y = "Absorbance",
-        colour = "Sample") +
-    theme_minimal()
+data_processed |> plot_spectra()
 ```
 
 
 ### SNV
+
 ```{r}
-rec <- rec |>
+rec_snv <- rec |>
   step_log(all_outcomes(), base = 10) |>
-  step_resample(
-    grid = seq(3995, 600, by = -5),
-    interpol = "linear") |> 
+  step_resample(grid = RESAMPLING_GRID) |>
   step_snv()
+```
+
+```{r}
+rec_prep <- prep(rec_snv, training = data, verbose = TRUE)
+
+data_processed <- bake(
+  rec_prep,
+  new_data = NULL
+)
+```
+
+```{r}
+data_processed |> plot_spectra()
+```
+
+### Savitsky-Golay 
+
+```{r}
+rec_sg <- rec |>
+  step_log(all_outcomes(), base = 10) |>
+  step_resample(grid = RESAMPLING_GRID) |> 
+  step_snv() |> 
+  step_sg(w = SG_W, p = SG_P, m = SG_M)
+```
+
+```{r}
+rec_prep <- prep(rec_sg, training = data, verbose = TRUE)
+
+data_processed <- bake(
+  rec_prep,
+  new_data = NULL
+)
+```
+
+```{r}
+data_processed |> plot_spectra()
+```
+
+## All steps together
+
+```{r}
+rec <- recipe(data) |>
+  update_role(all_of(TARGET),  new_role = "outcome") |>
+  update_role(all_of(spc_cols), new_role = "predictor") |>
+  update_role(all_of(meta_cols), new_role = "metadata") |> 
+  step_log(all_outcomes(), base = 10) |>
+  step_resample(grid = RESAMPLING_GRID) |> 
+  step_snv() |> 
+  step_sg(w = SG_W, p = SG_P, m = SG_M)
 ```
 
 
@@ -141,31 +161,5 @@ data_processed <- bake(
 ```
 
 ```{r}
-spectra <- data_processed |>
-  pivot_longer(
-    cols = starts_with("wn_"),
-    names_to = "wavenumber",
-    names_prefix = "wn_",
-    names_transform = list(wavenumber = as.numeric),
-    values_to = "absorbance"
-  )
+data_processed |> plot_spectra()
 ```
-
-```{r}
-ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
-    geom_line(alpha = 0.35, colour = "steelblue") +
-    scale_x_reverse(
-        breaks = seq(500, 4000, by = 250),
-        minor_breaks = seq(500, 4000, by = 125)) +
-    labs(
-        x = "Wavenumber (cm-1)",
-        y = "Absorbance",
-        colour = "Sample") +
-    theme_minimal()
-```
-
-## SNV
-
-## Savitsky-Golay 
-
-

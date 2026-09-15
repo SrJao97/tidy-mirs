@@ -20,7 +20,186 @@ library(tidymodels)
 library(skimr)
 source(here("R", "prepare_data.R"))
 source(here("R", "steps.R"))
+source(here("R", "plots.R"))
 theme_set(theme_bw())
 tidymodels_prefer()
+```
+
+References:
+- [`recipes` R package (Tidymodels)](https://www.tidymodels.org/start/recipes/)
+
+```{r}
+SPECTRA_DIR = here("data/RT_spectra")
+SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
+```
+
+```{r}
+TARGET <- "clay_perc"
+
+# --- Preprocessing ----------------------------------------------------------
+RESAMPLE_BY <- 5L
+RESAMPLING_GRID <- seq(3995, 600, by = -5)
+SG_W        <- 15L   # tuned in tune_sg.qmd
+SG_P        <- 3L    # tuned in tune_sg.qmd
+SG_M        <- 1L    # first derivative — confirmed in tune_sg.qmd
+```
+
+
+## Getting data
+
+```{r}
+data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)
+```
+
+## Pre-processing recipe
+
+```{r}
+spc_cols <- names(data)[startsWith(names(data), "wn_")]
+meta_cols <- setdiff(names(data), c(TARGET, spc_cols))
+```
+
+```{r}
+rec <- recipe(data) |>
+  update_role(all_of(TARGET),  new_role = "outcome") |>
+  update_role(all_of(spc_cols), new_role = "predictor") |>
+  update_role(all_of(meta_cols), new_role = "metadata") |> 
+  step_log(all_outcomes(), base = 10) |>
+  step_resample(grid = RESAMPLING_GRID) |> 
+  step_snv() |> 
+  step_sg(w = SG_W, p = SG_P, m = SG_M)
+```
+
+
+```{r}
+rec_prep <- prep(rec, training = data, verbose = TRUE)
+rec_prep |> summary()
+```
+
+## Principal Component Analysis
+
+```{r}
+rec_pca <- rec_prep |>
+  step_pca(
+    all_predictors(),
+    num_comp = 10,
+    options = list(
+      center = TRUE,
+      scale. = FALSE
+    ),
+    prefix = "PC"
+  )
+```
+
+```{r}
+rec_pca |> summary()
+```
+
+
+```{r}
+rec_pca_prep <- rec_pca |> prep()
+```
+
+
+### Getting the PCA Loadings
+
+```{r}
+loadings <- tidy(rec_pca_prep, number = 5, type = "coef")
+```
+
+
+```{r}
+loadings <- loadings |> 
+  mutate(wn = as.integer(str_remove(terms, "wn_"))) |> 
+  filter(component %in% paste0("PC", 1:4))
+```
+
+
+```{r}
+ggplot(loadings, aes(wn, value)) +
+    geom_line(alpha = 1, colour = "steelblue") +
+    facet_wrap(~ component, ncol = 1, scales = "free_y") +
+    scale_x_reverse(
+        breaks = seq(500, 4000, by = 250),
+        minor_breaks = seq(500, 4000, by = 125)) +
+    labs(
+        x = "Wavenumber (cm⁻¹)",
+        y = "Loading") +
+    theme_minimal()
+```
+
+
+### Getting PCA Scores
+
+
+```{r}
+scores <- bake(
+  rec_pca_prep,
+  new_data = NULL
+)
+```
+
+```{r}
+scores |> glimpse()
+names(scores)
+```
+
+
+```{r}
+scores |>
+  ggplot(aes(PC01, PC02)) +
+  geom_point() +
+  theme_minimal()
+```
+
+
+
+```{r}
+scores |>
+  mutate(distance = sqrt(PC01^2 + PC02^2)) |>
+  slice_max(distance, n = 10) |>
+  select(smp_id, PC01, PC02, distance, clay_perc, carbon_org_perc)
+```
+
+
+```{r}
+ggplot(scores, aes(PC01, PC02, colour = clay_perc)) +
+  geom_point(size = 2.5) +
+  scale_colour_viridis_c() +
+  theme_minimal()
+```
+
+
+
+```{r}
+scores |>
+  slice_min(PC02, n = 5) |>
+  select(smp_id, PC01, PC02, clay_perc, carbon_org_perc)
+```
+
+
+### Are they outliers?
+
+```{r}
+rec <- recipe(data) |>
+  update_role(all_of(TARGET),  new_role = "outcome") |>
+  update_role(all_of(spc_cols), new_role = "predictor") |>
+  update_role(all_of(meta_cols), new_role = "metadata") |> 
+  step_log(all_outcomes(), base = 10) |>
+  step_resample(grid = RESAMPLING_GRID) |> 
+  step_snv()
+```
+
+
+```{r}
+rec_prep <- prep(rec, training = data, verbose = TRUE)
+
+data_processed <- bake(
+  rec_prep,
+  new_data = NULL
+)
+```
+
+```{r}
+data_processed |> plot_spectra(highlight = c("RT_44", "RT_22"))
 ```
 
