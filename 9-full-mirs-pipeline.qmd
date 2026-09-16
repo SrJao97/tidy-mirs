@@ -24,11 +24,3 @@ theme_set(theme_bw())
 tidymodels_prefer()
 ```
 
-
-## Loading and pre-processing
-
-## Partial Least Squares
-
-## Cubist
-
-## Predicting new sample

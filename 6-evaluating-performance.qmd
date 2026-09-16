@@ -1,5 +1,5 @@
 ---
-title: "Outlier detection"
+title: "Evaluating performance"
 author: Franck Albinet
 date: last-modified
 format:
@@ -18,9 +18,149 @@ library(here)
 library(tidyverse)
 library(tidymodels)
 library(skimr)
+library(plsmod)
 source(here("R", "prepare_data.R"))
 source(here("R", "steps.R"))
 theme_set(theme_bw())
 tidymodels_prefer()
 ```
 
+```{r}
+SPECTRA_DIR = here("data/RT_spectra")
+SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
+```
+
+```{r}
+TARGET <- "clay_perc"
+
+# --- Preprocessing ----------------------------------------------------------
+RESAMPLE_BY <- 5L
+RESAMPLING_GRID <- seq(3995, 600, by = -5)
+SG_W        <- 15L   
+SG_P        <- 3L    
+SG_M        <- 1L  
+```
+
+
+## Getting data
+
+```{r}
+data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)|> filter(smp_id != "RT_44")
+```
+
+
+```{r}
+data_train <- data |> filter(source == "KSSL")
+data_test  <- data |> filter(source == "NAPT")
+split <- make_splits(data_train, data_test)
+```
+
+
+```{r}
+set.seed(123)
+
+folds <- vfold_cv(
+  training(split),
+  v = 10,
+  repeats = 5,
+  strata = TARGET,
+  breaks = 3
+)
+```
+
+
+```{r}
+spc_cols <- names(data)[startsWith(names(data), "wn_")]
+meta_cols <- setdiff(names(data), c(TARGET, spc_cols))
+
+rec <- recipe(data) |>
+  update_role(all_of(TARGET),  new_role = "outcome") |>
+  update_role(all_of(spc_cols), new_role = "predictor") |>
+  update_role(all_of(meta_cols), new_role = "metadata") |> 
+  step_log(all_outcomes(), base = 10) |>
+  step_resample(grid = RESAMPLING_GRID) |> 
+  step_snv() |> 
+  step_sg(w = SG_W, p = SG_P, m = SG_M)
+```
+
+```{r}
+pls_spec <- pls(num_comp = tune()) |>
+  set_engine("mixOmics") |>
+  set_mode("regression")
+```
+
+
+
+```{r}
+wf <- workflow() |>
+  add_recipe(rec) |>
+  add_model(pls_spec)
+```
+
+
+```{r}
+num_comp_grid <- tibble(num_comp = 2:20)
+```
+
+
+```{r}
+tune_res <- tune_grid(
+  wf,
+  resamples = folds,
+  grid = num_comp_grid
+)
+```
+
+
+```{r}
+collect_metrics(tune_res)
+```
+
+
+```{r}
+autoplot(tune_res)
+```
+
+
+```{r}
+collect_metrics(tune_res) |>
+  ggplot(aes(x = num_comp, y = mean)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = mean - std_err, ymax = mean + std_err), width = 0.1) +
+  facet_wrap(~ .metric, scales = "free_y") +
+  labs(x = "Number of PLS components", y = NULL,
+       title = "CV performance vs number of PLS components") +
+  theme_minimal()
+```
+
+
+```{r}
+collect_metrics(tune_res) |>
+  ggplot(aes(x = num_comp, y = mean,
+             ymin = mean - std_err, ymax = mean + std_err)) +
+  geom_pointrange() +
+  facet_wrap(~ .metric, scales = "free_y") +
+  labs(x = "Number of PLS components", y = NULL)
+```
+
+
+```{r}
+best_rmse <- collect_metrics(tune_res) |>
+  filter(.metric == "rmse") |>
+  slice_min(mean, n = 1) |>
+  pull(num_comp)
+
+collect_metrics(tune_res) |>
+  mutate(.metric = recode(.metric, rmse = "RMSE", rsq = "R\u00b2")) |>
+  ggplot(aes(x = num_comp, y = mean,
+             ymin = mean - std_err, ymax = mean + std_err)) +
+  geom_line(color = "grey60") +
+  geom_pointrange(size = 0.4) +
+  geom_vline(xintercept = best_rmse, linetype = "dashed", color = "steelblue") +
+  scale_x_continuous(breaks = 2:20) +
+  facet_wrap(~ .metric, scales = "free_y") +
+  labs(x = "Number of PLS components", y = NULL,
+       title = "CV performance vs number of PLS components") +
+  theme_bw()
+```

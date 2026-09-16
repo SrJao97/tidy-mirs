@@ -39,9 +39,9 @@ TARGET <- "clay_perc"
 # --- Preprocessing ----------------------------------------------------------
 RESAMPLE_BY <- 5L
 RESAMPLING_GRID <- seq(3995, 600, by = -5)
-SG_W        <- 15L   # tuned in tune_sg.qmd
-SG_P        <- 3L    # tuned in tune_sg.qmd
-SG_M        <- 1L    # first derivative — confirmed in tune_sg.qmd
+SG_W        <- 15L 
+SG_P        <- 3L 
+SG_M        <- 1L
 ```
 
 
@@ -203,3 +203,5 @@ data_processed <- bake(
 data_processed |> plot_spectra(highlight = c("RT_44", "RT_22"))
 ```
 
+## TODO
+- mahalanobis ?

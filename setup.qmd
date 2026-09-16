@@ -5,3 +5,5 @@
 - opusreader2
 - readr (not required if tidyverse)
 - tidyverse
+- renv::install("bioc::mixOmics")
+- renv::install("plsmod")
