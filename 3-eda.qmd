@@ -122,6 +122,7 @@ soil_long |>
   stat_qq_line(na.rm = TRUE) +
   facet_wrap(~soil_prop, scales = "free")
 ```
+
 ## Soil properties correlation
 
 ```{r}
@@ -141,7 +142,6 @@ data |>
 ```
 
 ## Spectra
-
 
 ```{r}
 spectra <- data |>

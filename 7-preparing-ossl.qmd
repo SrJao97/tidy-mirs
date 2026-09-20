@@ -1,0 +1,41 @@
+---
+title: "Preparing OSSL"
+author: Franck Albinet
+date: last-modified
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(here)
+library(tidyverse)
+```
+
+OSSL reference: https://docs.soilspectroscopy.org/
+
+```{r}
+src = "https://storage.googleapis.com/soilspec4gg-public/ossl_all_L0_v1.2.csv.gz"
+dest = here("data", "ossl_mir_k_sample.rds")
+```
+
+```{r}
+data = read_csv(src)
+```
+
+```{r}
+data |> 
+    filter(!is.na(k.ext_usda.a725_cmolc.kg)) |> 
+    filter(if_all(starts_with("scan_mir"), ~ !is.na(.x))) |> 
+    slice_sample(prop=0.05) |> 
+    select(id.layer_uuid_txt, k.ext_usda.a725_cmolc.kg, starts_with("scan_mir")) |>
+    rename_with(~ str_replace(.x, "scan_mir\\.(\\d+)_abs", "wn_\\1"), .cols = starts_with("scan_mir")) |> 
+    rename(smp_id = id.layer_uuid_txt, kex = k.ext_usda.a725_cmolc.kg) |>
+    write_rds(dest, compress = "xz")
+```

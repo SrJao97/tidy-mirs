@@ -204,4 +204,14 @@ data_processed |> plot_spectra(highlight = c("RT_44", "RT_22"))
 ```
 
 ## TODO
-- mahalanobis ?
+
+
+```{r}
+NAPT_smp_id = data |> filter(source == "NAPT") |> select(smp_id) |> pull(smp_id)
+NAPT_smp_id
+```
+
+
+```{r}
+data_processed |> plot_spectra(highlight = NAPT_smp_id)
+```

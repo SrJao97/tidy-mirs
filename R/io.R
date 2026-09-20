@@ -2,6 +2,7 @@ library(opusreader2)
 library(purrr)
 library(tibble)
 library(dplyr)
+library(here)
 
 #' Read OPUS files into a tidy tibble
 #'

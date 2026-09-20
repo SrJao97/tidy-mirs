@@ -34,7 +34,7 @@ SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
 ```
 
 ```{r}
-TARGET <- "clay_perc"
+TARGET <- "potassium_cmolkg"
 
 # --- Preprocessing ----------------------------------------------------------
 RESAMPLE_BY <- 5L
