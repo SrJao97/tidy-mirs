@@ -1,11 +1,11 @@
 ---
 title: "Predicting Exchangeable Potassium using OSSL"
+subtitle: "The same pipeline, run end to end on a public, global dataset."
 author: Franck Albinet
 date: last-modified
 format:
   html:
     toc: true
-    code-fold: true
     theme: cosmo
 execute:
   echo: true
@@ -19,6 +19,7 @@ library(tidyverse)
 library(tidymodels)
 library(skimr)
 library(plsmod)
+library(hexbin)
 source(here("R", "prepare_data.R"))
 source(here("R", "steps.R"))
 source(here("R", "split.R"))
@@ -27,16 +28,15 @@ tidymodels_prefer()
 ```
 
 ```{r}
-SPECTRA_DIR = here("data/RT_spectra")
-SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
+SRC_FILE = here("data/ossl_mir_k_sample.rds")
 ```
 
 ```{r}
-TARGET <- "carbon_tot_perc"
+TARGET <- "kex"
 
 # --- Preprocessing ----------------------------------------------------------
 RESAMPLE_BY <- 5L
-RESAMPLING_GRID <- seq(3995, 600, by = -5)
+RESAMPLING_GRID <- seq(4000, 600, by = -5)
 SG_W        <- 15L   
 SG_P        <- 3L    
 SG_M        <- 1L  
@@ -46,28 +46,35 @@ SG_M        <- 1L
 ## Getting data
 
 ```{r}
-data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)|> filter(smp_id != "RT_44")
+data <- read_rds(SRC_FILE)
+```
+
+Let's check the range of wavenumbers:
+
+```{r}
+data |> 
+  select(starts_with("wn")) |> 
+  names() |> 
+  parse_number() |> 
+  range()
+```
+
+```{r}
+split <- initial_validation_split(data, prop=c(0.7, 0.2))
+# split <- initial_split(data, prop = 0.8)
 ```
 
 
 ```{r}
-split <- kennard_stone_split(data, prop = 50/70, cols = starts_with("wn_"))
+# set.seed(123)
 
-# or
-# split <- initial_split(data, prop = 50/70)
-```
-
-
-```{r}
-set.seed(123)
-
-folds <- vfold_cv(
-  training(split),
-  v = 10,
-  repeats = 10,
-  strata = TARGET,
-  breaks = 2
-)
+# folds <- vfold_cv(
+#   training(split),
+#   v = 5,
+#   repeats = 1,
+#   strata = TARGET,
+#   breaks = 2
+# )
 ```
 
 
@@ -80,7 +87,7 @@ rec <- recipe(data) |>
   update_role(all_of(spc_cols), new_role = "predictor") |>
   update_role(all_of(meta_cols), new_role = "metadata") |> 
   step_log(all_outcomes(), base = 10) |>
-  step_resample(grid = RESAMPLING_GRID) |> 
+  # step_resample(grid = RESAMPLING_GRID) |> 
   step_snv() |> 
   step_sg(w = SG_W, p = SG_P, m = SG_M)
 ```
@@ -101,21 +108,17 @@ wf <- workflow() |>
 
 
 ```{r}
-num_comp_grid <- tibble(num_comp = 2:20)
+num_comp_grid <- tibble(num_comp = seq(5, 50, 5))
 ```
 
 
 ```{r}
 tune_res <- tune_grid(
   wf,
-  resamples = folds,
+  resamples = validation_set(split),
+  # resamples = folds,
   grid = num_comp_grid
 )
-```
-
-
-```{r}
-collect_metrics(tune_res)
 ```
 
 
@@ -125,15 +128,15 @@ autoplot(tune_res)
 
 
 ```{r}
-collect_metrics(tune_res) |>
-  ggplot(aes(x = num_comp, y = mean)) +
-  geom_line() +
-  geom_errorbar(aes(ymin = mean - std_err, ymax = mean + std_err), width = 0.1, color = "grey20", linetype = "22") +
-  geom_point(size=1.5) +
-  facet_wrap(~ .metric, scales = "free_y") +
-  labs(x = "Number of PLS components", y = NULL,
-       title = "CV performance vs number of PLS components") +
-  theme_minimal()
+# collect_metrics(tune_res) |>
+#   ggplot(aes(x = num_comp, y = mean)) +
+#   geom_line() +
+#   geom_errorbar(aes(ymin = mean - std_err, ymax = mean + std_err), width = 0.1, color = "grey20", linetype = "22") +
+#   geom_point(size=1.5) +
+#   facet_wrap(~ .metric, scales = "free_y") +
+#   labs(x = "Number of PLS components", y = NULL,
+#        title = "CV performance vs number of PLS components") +
+#   theme_minimal()
 ```
 
 
@@ -144,13 +147,14 @@ best_rmse
 
 
 ```{r}
-best_1se <- select_by_one_std_err(tune_res, metric = "rmse", num_comp)
-best_1se
+# best_1se <- select_by_one_std_err(tune_res, metric = "rmse", num_comp)
+# best_1se
 ```
 
 
 ```{r}
-final_wf <- wf |> finalize_workflow(best_1se)
+final_wf <- wf |> finalize_workflow(best_rmse)
+# final_wf <- wf |> finalize_workflow(best_1se)
 
 # or manually
 # final_wf <- wf |> finalize_workflow(tibble(num_comp = 10))
@@ -177,7 +181,11 @@ collect_predictions(final_res)
 collect_predictions(final_res) |>
   ggplot(aes(x = .data[[TARGET]], y = .pred)) +
   geom_abline(lty = 2) +
-  geom_point(alpha = 0.5) +
-  labs(x = "Observed carbon_tot_perc (%)", y = "carbon_tot_perc (%)") +
+  geom_hex(bins=40) +
+  scale_fill_viridis_c(trans = "log10") +
+  geom_abline(lty = 2) +
+  labs(x = "Observed Kex (cmol+/kg)", y = "Predicted Kex (cmol+/kg)") +
   coord_obs_pred()
 ```
+
+## Cubist

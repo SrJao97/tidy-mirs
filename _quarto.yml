@@ -1,0 +1,52 @@
+project:
+  type: website
+  render:
+    - "*.qmd"
+    - "!setup.qmd"
+    - "!reading-spectra.qmd"
+    - "!to-read.qmd"
+
+website:
+  title: "Soil mid-infrared spectroscopy with tidymodels"
+  description: "A one-week course on soil mid-infrared spectroscopy, taught top-down with the tidyverse and tidymodels."
+  repo-url: https://github.com/franckalbinet/course-mirs-102026
+  repo-actions: [edit, issue]
+  page-footer:
+    left: "Franck Albinet"
+  sidebar:
+    title: "Soil MIR Spectroscopy"
+    style: docked
+    contents:
+      - text: Home
+        href: index.qmd
+      - 0-gettting-setup.qmd
+      - 1-full-pipeline.qmd
+      - 2-loading-data.qmd
+      - 3-eda.qmd
+      - 4-feature-engineering.qmd
+      - 5-outlier-detection.qmd
+      - 6-evaluating-performance.qmd
+      - 7-preparing-ossl.qmd
+      - 8-kex-ossl-pipeline.qmd
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: false
+    code-copy: hover
+    code-block-border-left: false
+    grid:
+      body-width: 750px
+
+execute:
+  freeze: auto
+  echo: true
+  warning: false
+  message: false
+  fig-width: 6
+  fig-height: 4
+knitr:
+  opts_chunk:
+    fig.align: center
+

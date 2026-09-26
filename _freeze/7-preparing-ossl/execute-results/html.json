@@ -1,0 +1,15 @@
+{
+  "hash": "acbea0bec55751057d62f7dc710d389b",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Preparing OSSL\"\nauthor: Franck Albinet\ndate: last-modified\nformat:\n  html:\n    toc: true\n    theme: cosmo\nexecute:\n  echo: true\n  warning: false\n  message: false\n---\n\n\n::: {.cell layout-align=\"center\"}\n\n```{.r .cell-code}\nlibrary(here)\nlibrary(tidyverse)\n```\n:::\n\n\nOSSL reference: https://docs.soilspectroscopy.org/\n\n\n::: {.cell layout-align=\"center\"}\n\n```{.r .cell-code}\nsrc = \"https://storage.googleapis.com/soilspec4gg-public/ossl_all_L0_v1.2.csv.gz\"\ndest = here(\"data\", \"ossl_mir_k_sample.rds\")\n```\n:::\n\n\n\n::: {.cell layout-align=\"center\"}\n\n```{.r .cell-code}\ndata = read_csv(src)\n```\n:::\n\n\n\n::: {.cell layout-align=\"center\"}\n\n```{.r .cell-code}\n# Kex Minimum Detection Level \n# Ref: https://www.sciencedirect.com/science/article/pii/S2589721722000186\nkex_MDL <- 0.12 # cmol(+).kg−1\n```\n:::\n\n\n\n::: {.cell layout-align=\"center\"}\n\n```{.r .cell-code}\nset.seed(123)\ndata |> \n    filter(!is.na(k.ext_usda.a725_cmolc.kg)) |> \n    filter(if_all(starts_with(\"scan_mir\"), ~ !is.na(.x))) |> \n    filter(k.ext_usda.a725_cmolc.kg >= kex_MDL) |>\n    slice_sample(prop=0.1) |> \n    select(id.layer_uuid_txt, k.ext_usda.a725_cmolc.kg, starts_with(\"scan_mir\")) |>\n    rename_with(~ str_replace(.x, \"scan_mir\\\\.(\\\\d+)_abs\", \"wn_\\\\1\"), .cols = starts_with(\"scan_mir\")) |> \n    rename(smp_id = id.layer_uuid_txt, kex = k.ext_usda.a725_cmolc.kg) |>\n    write_rds(dest, compress = \"xz\")\n```\n:::\n\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

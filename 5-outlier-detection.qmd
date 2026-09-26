@@ -1,11 +1,11 @@
 ---
 title: "Outlier detection"
+subtitle: "Use PCA on the preprocessed spectra to find samples a model shouldn't trust."
 author: Franck Albinet
 date: last-modified
 format:
   html:
     toc: true
-    code-fold: true
     theme: cosmo
 execute:
   echo: true

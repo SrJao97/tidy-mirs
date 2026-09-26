@@ -1,5 +1,4 @@
 library(tidyverse)
-theme_set(theme_bw())
 
 # ── Plotting spectra: Overview and highlighting ─────────────────────────────────────────────────
 plot_spectra <- function(
@@ -8,7 +7,9 @@ plot_spectra <- function(
     names_prefix = "wn_",
     id_col = "smp_id",
     highlight = NULL,
-    alpha = 0.3
+    alpha = 0.3,
+    breaks = seq(500, 4000, by = 250),
+    minor_breaks = seq(500, 4000, by = 125)
 ) {
   spectra <- data |>
     tidyr::pivot_longer(
@@ -57,8 +58,8 @@ plot_spectra <- function(
 
   p +
     ggplot2::scale_x_reverse(
-      breaks = seq(500, 4000, by = 250),
-      minor_breaks = seq(500, 4000, by = 125)
+      breaks = breaks,
+      minor_breaks = minor_breaks
     ) +
     ggplot2::labs(
       x = "Wavenumber (cm-1)",

@@ -1,11 +1,11 @@
 ---
 title: "Preparing OSSL"
+subtitle: "Pull a working sample from the Open Soil Spectral Library."
 author: Franck Albinet
 date: last-modified
 format:
   html:
     toc: true
-    code-fold: true
     theme: cosmo
 execute:
   echo: true
@@ -30,10 +30,18 @@ data = read_csv(src)
 ```
 
 ```{r}
+# Kex Minimum Detection Level 
+# Ref: https://www.sciencedirect.com/science/article/pii/S2589721722000186
+kex_MDL <- 0.12 # cmol(+).kg−1
+```
+
+```{r}
+set.seed(123)
 data |> 
     filter(!is.na(k.ext_usda.a725_cmolc.kg)) |> 
     filter(if_all(starts_with("scan_mir"), ~ !is.na(.x))) |> 
-    slice_sample(prop=0.05) |> 
+    filter(k.ext_usda.a725_cmolc.kg >= kex_MDL) |>
+    slice_sample(prop=0.1) |> 
     select(id.layer_uuid_txt, k.ext_usda.a725_cmolc.kg, starts_with("scan_mir")) |>
     rename_with(~ str_replace(.x, "scan_mir\\.(\\d+)_abs", "wn_\\1"), .cols = starts_with("scan_mir")) |> 
     rename(smp_id = id.layer_uuid_txt, kex = k.ext_usda.a725_cmolc.kg) |>

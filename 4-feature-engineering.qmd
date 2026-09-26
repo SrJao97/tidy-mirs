@@ -1,11 +1,11 @@
 ---
 title: "Features engineering"
+subtitle: "Build a `recipes` pipeline out of resampling, SNV, and Savitzky-Golay steps."
 author: Franck Albinet
 date: last-modified
 format:
   html:
     toc: true
-    code-fold: true
     theme: cosmo
 execute:
   echo: true
@@ -25,9 +25,6 @@ theme_set(theme_bw())
 tidymodels_prefer()
 ```
 
-References:
-- [`recipes` R package (Tidymodels)](https://www.tidymodels.org/start/recipes/)
-
 ```{r}
 SPECTRA_DIR = here("data/RT_spectra")
 SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
@@ -44,7 +41,6 @@ SG_P        <- 3L
 SG_M        <- 1L
 ```
 
-
 ## Getting data
 
 ```{r}
@@ -53,7 +49,15 @@ data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)
 
 ## Recipes
 
+`1-full-pipeline.qmd` already built and used a recipe once, without explaining it. This page is that explanation. A `recipe` in tidymodels is a specification of preprocessing steps, written once and reused everywhere a model needs data in the same shape. The [recipes package](https://recipes.tidymodels.org/) and the [tidymodels recipes guide](https://www.tidymodels.org/start/recipes/) cover the general vocabulary this page assumes, alongside the [Posit cheatsheets](https://posit.co/resources/cheatsheets/) already pointed to from the course homepage.
+
+Base `recipes` ships steps for the usual tabular preprocessing, centring, scaling, dummy variables, but nothing for a spectrum. `step_snv()`, `step_sg()`, and `step_resample()`, defined in `R/steps.R`, close that gap.
+
+Each one wraps a `prospectr` or `resemble` function, `prospectr::standardNormalVariate()`, `prospectr::savitzkyGolay()`, `prospectr::resample()`, inside the contract a `recipes` step needs: a constructor, `prep()`, `bake()`, `print()`, `tidy()`. That's what lets `step_snv()` sit in a recipe next to `step_log()` or any other tidymodels step. It gets ordered, tuned, and applied the same way every other step does.
+
 ### Defining roles
+
+Every column in `data` gets a role before any preprocessing happens: `potassium_cmolkg` as the outcome, the `wn_*` columns as predictors, everything else, `sample_id`, `source`, the other soil properties, as metadata. Metadata columns ride along through the whole recipe unchanged. They're not used to fit anything, but having them still attached to `data_processed` later makes it possible to check whether prediction errors line up with, say, clay content or sample source, without a separate join back to the original data.
 
 ```{r}
 spc_cols <- names(data)[startsWith(names(data), "wn_")]
@@ -69,14 +73,51 @@ rec <- recipe(data) |>
 summary(rec)
 ```
 
+### All steps together
+
+This shows the full preprocessing chain at once: log-scaling the outcome, resampling the spectral grid, SNV, then Savitzky-Golay. The rest of this page unpacks these steps one by one, adding one more each time.
+
+```{r}
+rec_all <- recipe(data) |>
+  update_role(all_of(TARGET),  new_role = "outcome") |>
+  update_role(all_of(spc_cols), new_role = "predictor") |>
+  update_role(all_of(meta_cols), new_role = "metadata") |> 
+  step_log(all_outcomes(), base = 10) |>
+  step_resample(grid = RESAMPLING_GRID) |> 
+  step_snv() |> 
+  step_sg(w = SG_W, p = SG_P, m = SG_M)
+```
+
+```{r}
+rec_prep <- prep(rec_all, training = data, verbose = TRUE)
+
+data_processed <- bake(
+  rec_prep,
+  new_data = NULL
+)
+```
+
+```{r}
+data_processed |> plot_spectra()
+```
+
+## Unpacking the recipe
+
+The rest of this page adds one step at a time to `rec`. Each one's effect on the spectra is visible on its own this way. Every version gets `prep()`ped then `bake()`d before plotting.
+
+`prep()` is where a step learns anything it needs from the training data, a column's mean and standard deviation for centring and scaling, say. `bake()` is where that learned information gets applied: to the training data here, to a validation or test set later, using the exact same numbers either time.
+
+None of the three steps below actually estimate anything from the training set as a whole. SNV and Savitzky-Golay both act one row at a time, using only that row's own values. Resampling only depends on the wavenumber grid, not on any sample's measurements. `prep()` still runs before each one, mostly resolving which columns it applies to. The training/test separation it exists for matters most once a step needs to remember something computed across rows, a column mean for centring, say, rather than something computed within each row.
+
 ### Resampling
+
+This step does two things. `step_log(all_outcomes(), base = 10)` log-scales the outcome, the fix for `potassium_cmolkg`'s skew discussed back in `2-loading-data.qmd` and `3-eda.qmd`. `step_resample()` interpolates every spectrum onto `RESAMPLING_GRID`, an evenly spaced set of wavenumbers 5 cm⁻¹ apart, versus the roughly 2 cm⁻¹ spacing `read_opus_tbl()` returns. That cuts the predictor count from 1707 columns to 680. It also guarantees every sample lands on the same wavenumber axis, even where the source instrument didn't.
 
 ```{r}
 rec_res <- rec |>
   step_log(all_outcomes(), base = 10) |>
   step_resample(grid = RESAMPLING_GRID)
 ```
-
 
 ```{r}
 rec_prep <- prep(rec_res, training = data, verbose = TRUE)
@@ -91,8 +132,9 @@ data_processed <- bake(
 data_processed |> plot_spectra()
 ```
 
-
 ### SNV
+
+`step_snv()` centres and scales each spectrum by its own mean and standard deviation, row by row, not column by column. That corrects for scatter effects, differences in particle size or packing that shift a whole spectrum up or down without changing its shape. Two spectra with the same underlying chemistry but different scatter come out looking the same after SNV. Two spectra with genuinely different chemistry stay different.
 
 ```{r}
 rec_snv <- rec |>
@@ -114,7 +156,13 @@ data_processed <- bake(
 data_processed |> plot_spectra()
 ```
 
-### Savitsky-Golay 
+### Savitzky-Golay
+
+`step_sg()` fits a polynomial of order `SG_P` inside a moving window `SG_W` wavenumbers wide, centred on each point. It then reads off either a smoothed value or a derivative from that fit, depending on `SG_M`. With `SG_M = 1` here, each spectrum gets its first derivative instead of a smoothed value. A first derivative removes baseline shifts entirely, rather than just correcting for them the way SNV does. It also tends to sharpen overlapping peaks.
+
+Smoothing and differentiating both cost some data at the edges. `prospectr::savitzkyGolay()` trims `(w - 1) / 2` wavenumbers off each end. That's why the plotted spectrum below is narrower than the one above it.
+
+`SG_W = 15`, `SG_P = 3`, and `SG_M = 1` are sensible defaults here, tuned by eye on a dataset rather than picked arbitrarily. Tuning them properly, as part of a model fit, comes later in this course.
 
 ```{r}
 rec_sg <- rec |>
@@ -137,29 +185,3 @@ data_processed <- bake(
 data_processed |> plot_spectra()
 ```
 
-## All steps together
-
-```{r}
-rec <- recipe(data) |>
-  update_role(all_of(TARGET),  new_role = "outcome") |>
-  update_role(all_of(spc_cols), new_role = "predictor") |>
-  update_role(all_of(meta_cols), new_role = "metadata") |> 
-  step_log(all_outcomes(), base = 10) |>
-  step_resample(grid = RESAMPLING_GRID) |> 
-  step_snv() |> 
-  step_sg(w = SG_W, p = SG_P, m = SG_M)
-```
-
-
-```{r}
-rec_prep <- prep(rec, training = data, verbose = TRUE)
-
-data_processed <- bake(
-  rec_prep,
-  new_data = NULL
-)
-```
-
-```{r}
-data_processed |> plot_spectra()
-```

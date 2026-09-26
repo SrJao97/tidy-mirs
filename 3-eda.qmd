@@ -1,11 +1,11 @@
 ---
 title: "Exploratory Data Analysis"
+subtitle: "Look at the spectra and the soil properties before modelling anything."
 author: Franck Albinet
 date: last-modified
 format:
   html:
     toc: true
-    code-fold: true
     theme: cosmo
 execute:
   echo: true
@@ -18,6 +18,7 @@ library(here)
 library(tidyverse)
 library(tidymodels)
 source(here("R", "prepare_data.R"))
+source(here("R", "plots.R"))
 theme_set(theme_bw())
 tidymodels_prefer()
 ```
@@ -31,11 +32,15 @@ SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
 
 ## Getting data
 
+This loads the same tibble `2-loading-data.qmd` builds, in one call.
+
 ```{r}
 data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)
 ```
 
 ## Summary statistics
+
+Three tools summarize the same tibble here. `summary()` is base R's quick per-column stats. `glimpse()` trades full statistics for seeing every column at a glance. `skimr::skim()` adds missingness and a spark histogram per column, worth it once a dataset has more than a handful of properties. The last two are shown but not run here. Both dump too much to read usefully once wavenumber columns are involved. Try them yourself in the R console.
 
 ```{r}
 data |> 
@@ -44,17 +49,28 @@ data |>
 ```
 
 ```{r}
-glimpse(data)
+#| eval: false
+glimpse(data |> select(!starts_with("wn_")))
 ```
 
 ```{r}
+#| eval: false
 data |> 
-  skimr::skim(!starts_with("wn_"))
+  select(!starts_with("wn_")) |>
+  skimr::skim()
 ```
 
 ## Soil properties histogram
 
 ### A single histogram
+
+::: {.callout-note}
+## Building a plot in layers
+
+`ggplot2` builds a plot in layers. `ggplot()` sets up the data and the mapping from columns to visual properties through `aes()`. Each `geom_*()` adds one layer: points, lines, histograms. The [ggplot2 book](https://ggplot2-book.org/) covers every layer this course uses and plenty it doesn't.
+:::
+
+`clay_perc`'s histogram is roughly the shape you'd expect: no long tail, nothing to fix.
 
 ```{r}
 data |> 
@@ -62,7 +78,7 @@ data |>
     geom_histogram()
 ```
 
-or log10-transformed:
+`potassium_cmolkg` isn't so well-behaved. The QQ-plots below make the case properly. Log-transforming the column itself is one fix:
 
 ```{r}
 data |>
@@ -71,7 +87,7 @@ data |>
   geom_histogram(bins=10, na.rm = TRUE)
 ```
 
-or log10-transformed but using the original values as label: 
+Or transform just the axis display, keeping the original units as labels rather than the log values:
 
 ```{r}
 data |>
@@ -81,6 +97,8 @@ data |>
 ```
 
 ### All soil properties
+
+This generalizes the same log-scaled view to every property at once. `pH_H20` is left out. It's already a log scale. Logging it again would make its skew worse, not better.
 
 ```{r}
 soil_long <- data |> 
@@ -104,6 +122,8 @@ soil_long |>
 
 ## Soil properties QQ-plots
 
+A QQ plot checks a variable against a normal distribution. Points that follow the diagonal line come from something close to normal. Points that curve away from it don't.
+
 ```{r}
 soil_long |> 
   ggplot(aes(sample = value)) +
@@ -111,6 +131,8 @@ soil_long |>
   stat_qq_line(na.rm = TRUE) +
   facet_wrap(~soil_prop, scales = "free")
 ```
+
+`carbon_org_perc` and `carbon_tot_perc` curve furthest from the line, the same properties `2-loading-data.qmd` flagged `potassium_cmolkg` for, only more so. Log-transforming pulls most of them back toward it:
 
 
 ```{r}
@@ -123,7 +145,19 @@ soil_long |>
   facet_wrap(~soil_prop, scales = "free")
 ```
 
+`carbon_org_perc` makes the clearest case. Its raw skewness is 6.4, against 2.3 for `potassium_cmolkg`. Log-transformed, that drops to 0.1. The range runs from 0.08% to 49%, a roughly 600-fold spread across 69 samples. Three reasons favor fitting a model on `log10(carbon_org_perc)` instead of the raw value.
+
+A model fit on the raw scale can predict a negative carbon percentage. Back-transforming a log-scale prediction with `10^y` never can.
+
+Squared-error loss on the raw scale weighs every percentage point of error the same, wherever it falls on the scale. That lets the handful of high-carbon samples dominate the loss, since their absolute errors are bigger. On the log scale, the same absolute error costs more for a low-carbon sample than a high one. The model can't just chase the few high values at the expense of everyone else.
+
+Skewed variables like this one also tend to have variance that grows with the value. Most classical inference tools assume that variance stays constant across the range. The log transform tends to even it out.
+
+There's a cost too. Coefficients and metrics like RMSE come back in log units, not percent carbon. Reading them in the original units takes a deliberate back-transform.
+
 ## Soil properties correlation
+
+Organic carbon and phosphorus correlate on the log scale: r = 0.40 (p = 0.018, n = 34, using only samples with both measured). It isn't a tight relationship. Soils richer in organic matter tend to hold more phosphorus too.
 
 ```{r}
 data |>
@@ -143,6 +177,17 @@ data |>
 
 ## Spectra
 
+### All spectra
+
+```{r}
+data |> 
+    plot_spectra()
+```
+
+### Unpacking `plot_spectra()`
+
+`plot_spectra()` reshapes the wavenumber columns into long format, then builds the plot below in stages. Colouring every one of the 70 samples by ID, the first attempt, produces a legend nobody can read:
+
 ```{r}
 spectra <- data |>
   pivot_longer(
@@ -153,7 +198,6 @@ spectra <- data |>
     values_to = "absorbance"
   )
 ```
-
 
 ```{r}
 ggplot(spectra, aes(wavenumber, absorbance, group = smp_id, colour = smp_id)) +
@@ -167,6 +211,7 @@ ggplot(spectra, aes(wavenumber, absorbance, group = smp_id, colour = smp_id)) +
   theme_minimal()
 ```
 
+Dropping the per-sample colour and blending lines with `alpha` instead makes the overall shape visible:
 
 ```{r}
 ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
@@ -175,6 +220,7 @@ ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
   theme_minimal()
 ```
 
+Tidying the axis breaks and labels gets to what `plot_spectra()` actually returns:
 
 ```{r}
 ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
@@ -189,6 +235,9 @@ ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
     theme_minimal()
 ```
 
+### Colouring by organic carbon
+
+Mean absorbance across the whole spectrum correlates weakly with organic carbon: r = 0.32, p = 0.007. Higher-carbon samples sit a little higher on the y-axis overall. Colouring by `carbon_org_perc` makes that pattern visible directly on the spectra:
 
 ```{r}
 ggplot(
@@ -214,21 +263,11 @@ ggplot(
     y = "Absorbance"
   ) +
   theme_minimal()
-
 ```
 
+### Grouping by carbon quartile
 
-```{r}
-spectra_grouped <- spectra |>
-  mutate(
-    carbon_group = ntile(carbon_org_perc, 4),
-    carbon_group = factor(
-      carbon_group,
-      labels = c("Lowest", "Low–middle", "High–middle", "Highest")
-    )
-  )
-```
-
+This splits the same idea into four groups instead of a continuous gradient, easier to compare by eye than shades of one colour:
 
 ```{r}
 spectra_grouped <- spectra |>
@@ -255,9 +294,11 @@ ggplot(
     y = "Absorbance",
     title = "Spectra grouped by organic carbon"
   )
-#   theme_minimal()
 ```
 
+### Zooming into a wavenumber range
+
+This shows the full spectrum again, immediately before zooming in on 2200–2700 cm⁻¹. That's a comparatively flat stretch. Mean absorbance there runs lower and less variable across samples (1.31, sd 0.14) than the spectrum as a whole (1.72, sd 0.17). `coord_cartesian()` crops the view without dropping any data, unlike setting axis limits directly.
 
 ```{r}
 spectra_no_na <- spectra |>
@@ -280,6 +321,7 @@ ggplot(
   ) +
   theme_minimal()
 ```
+
 ```{r}
 ggplot(
   spectra_no_na,
@@ -296,5 +338,5 @@ ggplot(
     y = "Absorbance"
   ) +
   theme_minimal()
-
 ```
+

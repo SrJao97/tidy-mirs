@@ -1,17 +1,19 @@
 ---
 title: "Loading spectral data"
+subtitle: "Read a folder of OPUS files and a wet chemistry CSV into one tibble."
 author: Franck Albinet
 date: last-modified
 format:
   html:
     toc: true
-    code-fold: true
     theme: cosmo
 execute:
   echo: true
   warning: false
   message: false
 ---
+
+`1-full-pipeline.qmd` already called `prepare_rt()` once, to get moving. This page opens that call up. It loads spectra and soil chemistry for this dataset's soil samples. It turns them into the single tibble every later page in this course starts from. `source()` runs a plain R script and adds what it defines to your session, the job `import` does in Python. `read_opus_tbl()` and `prepare_rt()`, the two functions this page uses, live in `R/io.R` and `R/prepare_data.R`.
 
 ```{r}
 library(here)
@@ -20,22 +22,46 @@ source(here("R", "io.R"))
 source(here("R", "prepare_data.R"))
 ```
 
+Two paths to set: the folder holding the OPUS files the spectrometer wrote, and the CSV holding the wet chemistry measured on the same samples.
 
 ```{r}
 SPECTRA_DIR = here("data/RT_spectra")
 SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
 ```
 
-## Loading OPUS `.O` spectra files
+## Loading and joining everything in one call
 
-To load a batch of OPUS file contained in a directory:
+`prepare_rt()` does the whole job: read every OPUS file, average each sample's repeat scans, load the wet chemistry, and join the two by sample ID.
+
+```{r}
+data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)
+data
+```
+
+70 soil samples come back as 70 rows. Each row carries a wavenumber column for every point on the spectrum (`wn_*`) alongside the wet chemistry: clay percentage, pH, total and organic carbon, potassium, phosphorus.
+
+## Unpacking `prepare_rt()`
+
+The rest of this page opens up what `prepare_rt()` does underneath, one step at a time. Open `R/prepare_data.R` alongside this page if you want to follow the source directly. Each step below matches one chunk of that function.
+
+### Reading OPUS spectra files
+
+The lab's Bruker instrument writes one OPUS binary file per scan, with a `.0` extension: `RT_01_001.0`, `RT_01_002.0`, and so on for each of the four repeat scans per sample. `read_opus_tbl()` reads every file in a folder and returns one row per scan, wavenumbers as columns.
 
 ```{r}
 spectra <- read_opus_tbl(SPECTRA_DIR)
 spectra
 ```
 
-## Averaging spectra replicates
+### Averaging replicate scans
+
+Each sample was scanned four times. `read_opus_tbl()` keeps every scan as its own row. `str_extract()` pulls the shared sample ID out of each scan's filename, for example `RT_01` out of `RT_01_001`. Grouping by that ID and averaging every wavenumber column collapses the four scans into the one row per sample the rest of the pipeline needs.
+
+::: {.callout-note}
+## dplyr, four verbs at a time
+
+This chunk is your first look at dplyr, the package tidyverse uses for reshaping tables like this one. `mutate()` adds a column, `group_by()` marks rows to summarize together, `summarize()` collapses each group to one row, and `across()` applies the same function to several columns at once, here every column starting `wn_`. These four verbs cover most day-to-day data wrangling in R. The [dplyr cheatsheet](https://posit.co/resources/cheatsheets/) and the [dplyr reference site](https://dplyr.tidyverse.org) cover the rest.
+:::
 
 ```{r}
 spectra_mean <- spectra |>
@@ -44,33 +70,43 @@ spectra_mean <- spectra |>
     summarize(across(starts_with("wn_"), mean))
 ```
 
-## Loading soil properties
+### Loading soil properties
+
+The wet chemistry lives in a plain CSV, one row per sample.
 
 ```{r}
 soil_prop <- read_csv(SOIL_PROP_FILE)
 ```
 
+Interactively (e.g. in Positron or RStudio), `view(soil_prop)` opens the data viewer pane. For a rendered page, printing the tibble works just as well here. It has a manageable number of columns to show inline.
+
 ```{r}
-view(soil_prop)
+soil_prop
 ```
 
-## Joining spectra and soil properties
+### Joining spectra and soil properties
+
+The two tables share sample IDs under different names: `smp_id` in the averaged spectra, `sample_id` in the wet chemistry. `left_join()` takes both names when they don't match.
 
 ```{r}
 data <- spectra_mean |> 
     left_join(soil_prop, by = c("smp_id" = "sample_id"))
 ```
 
-To take a look at only non-wavenumbers columns:
+To look at only the non-wavenumber columns:
 
 ```{r}
 data |> 
     select(!starts_with("wn_"))
 ```
 
-## Wrapping it all in one helper function
+::: {.callout-note}
+## A skewed column
 
+`potassium_cmolkg` above is right-skewed. 58 of the 69 measured samples sit under 1 cmol(+)/kg. One reaches 2.8. `3-eda.qmd` comes back to this, with the plots to show it and the reasons it matters for modelling.
+:::
 
-```{r}
-data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)
-```
+## Digging further
+
+`prepare_rt()` in `R/prepare_data.R` is exactly the four chunks above, chained. To see how `read_opus_tbl()` itself gets from a folder of `.0` files to a tibble, open `R/io.R` and step through it in the R console: build a small `path`, run `read_opus(dsn = path)` from opusreader2 on its own, inspect what comes back, then run each following line by hand. These scripts aren't a package. `?read_opus_tbl` won't find a help page. The roxygen comment above each function is written in the same format a package help page would show, and reads the same way top to bottom.
+

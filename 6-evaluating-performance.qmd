@@ -1,17 +1,19 @@
 ---
 title: "Evaluating performance"
+subtitle: "Split the data, fit a model, and score it with tidymodels."
 author: Franck Albinet
 date: last-modified
 format:
   html:
     toc: true
-    code-fold: true
     theme: cosmo
 execute:
   echo: true
   warning: false
   message: false
 ---
+
+`1-full-pipeline.qmd` already tuned this same model on this same data. It picked a number of components with `select_best()`. This page runs the same tuning in more depth: the CV curve behind that choice, and `select_by_one_std_err()` as a simpler alternative to picking the single best value.
 
 ```{r}
 library(here)
