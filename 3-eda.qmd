@@ -180,8 +180,9 @@ data |>
 ### All spectra
 
 ```{r}
-data |> 
-    plot_spectra()
+#| fig-width: 9
+#| fig-height: 5
+data |> plot_spectra()
 ```
 
 ### Unpacking `plot_spectra()`
@@ -200,6 +201,8 @@ spectra <- data |>
 ```
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 5
 ggplot(spectra, aes(wavenumber, absorbance, group = smp_id, colour = smp_id)) +
   geom_line() +
   scale_x_reverse() +
@@ -208,21 +211,25 @@ ggplot(spectra, aes(wavenumber, absorbance, group = smp_id, colour = smp_id)) +
     y = "Absorbance",
     colour = "Sample"
   ) +
-  theme_minimal()
+  theme_bw()
 ```
 
 Dropping the per-sample colour and blending lines with `alpha` instead makes the overall shape visible:
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 5
 ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
   geom_line(alpha = 0.35, colour = "steelblue") +
   scale_x_reverse() +
-  theme_minimal()
+  theme_bw()
 ```
 
 Tidying the axis breaks and labels gets to what `plot_spectra()` actually returns:
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 5
 ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
     geom_line(alpha = 0.35, colour = "steelblue") +
     scale_x_reverse(
@@ -232,7 +239,7 @@ ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
         x = "Wavenumber (cm-1)",
         y = "Absorbance",
         colour = "Sample") +
-    theme_minimal()
+    theme_bw()
 ```
 
 ### Colouring by organic carbon
@@ -240,6 +247,8 @@ ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
 Mean absorbance across the whole spectrum correlates weakly with organic carbon: r = 0.32, p = 0.007. Higher-carbon samples sit a little higher on the y-axis overall. Colouring by `carbon_org_perc` makes that pattern visible directly on the spectra:
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 5
 ggplot(
   spectra,
   aes(
@@ -261,8 +270,7 @@ ggplot(
   labs(
     x = "Wavenumber (cm⁻¹)",
     y = "Absorbance"
-  ) +
-  theme_minimal()
+  )
 ```
 
 ### Grouping by carbon quartile
@@ -282,6 +290,8 @@ spectra_grouped <- spectra |>
 ```
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 5
 ggplot(
   spectra_grouped,
   aes(wavenumber, absorbance, group = smp_id)
@@ -306,6 +316,8 @@ spectra_no_na <- spectra |>
 ```
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 5
 ggplot(
   spectra_no_na,
   aes(wavenumber, absorbance, group = smp_id)
@@ -319,10 +331,12 @@ ggplot(
     x = "Wavenumber (cm⁻¹)",
     y = "Absorbance"
   ) +
-  theme_minimal()
+  theme_bw()
 ```
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 5
 ggplot(
   spectra_no_na,
   aes(wavenumber, absorbance, group = smp_id)
@@ -337,6 +351,6 @@ ggplot(
     x = "Wavenumber (cm⁻¹)",
     y = "Absorbance"
   ) +
-  theme_minimal()
+  theme_bw()
 ```
 

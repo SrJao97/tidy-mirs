@@ -9,7 +9,7 @@ project:
 website:
   title: "Soil mid-infrared spectroscopy with tidymodels"
   description: "A one-week course on soil mid-infrared spectroscopy, taught top-down with the tidyverse and tidymodels."
-  repo-url: https://github.com/franckalbinet/course-mirs-102026
+  repo-url: https://github.com/franckalbinet/tidy-mirs
   repo-actions: [edit, issue]
   page-footer:
     left: "Franck Albinet"
@@ -28,6 +28,8 @@ website:
       - 6-evaluating-performance.qmd
       - 7-preparing-ossl.qmd
       - 8-kex-ossl-pipeline.qmd
+
+bibliography: references.bib
 
 format:
   html:

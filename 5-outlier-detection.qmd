@@ -115,6 +115,8 @@ loadings <- loadings |>
 
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 5
 ggplot(loadings, aes(wn, value)) +
     geom_line(alpha = 1, colour = "steelblue") +
     facet_wrap(~ component, ncol = 1, scales = "free_y") +
@@ -123,8 +125,7 @@ ggplot(loadings, aes(wn, value)) +
         minor_breaks = seq(500, 4000, by = 125)) +
     labs(
         x = "Wavenumber (cm⁻¹)",
-        y = "Loading") +
-    theme_minimal()
+        y = "Loading")
 ```
 
 
@@ -147,8 +148,7 @@ names(scores)
 ```{r}
 scores |>
   ggplot(aes(PC01, PC02)) +
-  geom_point() +
-  theme_minimal()
+  geom_point()
 ```
 
 
@@ -164,8 +164,7 @@ scores |>
 ```{r}
 ggplot(scores, aes(PC01, PC02, colour = clay_perc)) +
   geom_point(size = 2.5) +
-  scale_colour_viridis_c() +
-  theme_minimal()
+  scale_colour_viridis_c()
 ```
 
 
@@ -200,6 +199,8 @@ data_processed <- bake(
 ```
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 3
 data_processed |> plot_spectra(highlight = c("RT_44", "RT_22"))
 ```
 
@@ -213,5 +214,7 @@ NAPT_smp_id
 
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 3
 data_processed |> plot_spectra(highlight = NAPT_smp_id)
 ```

@@ -127,6 +127,8 @@ autoplot(tune_res)
 
 
 ```{r}
+#| fig-width: 10
+#| fig-height: 4
 collect_metrics(tune_res) |>
   ggplot(aes(x = num_comp, y = mean)) +
   geom_line() +
@@ -134,8 +136,7 @@ collect_metrics(tune_res) |>
   geom_point(size=1.5) +
   facet_wrap(~ .metric, scales = "free_y") +
   labs(x = "Number of PLS components", y = NULL,
-       title = "CV performance vs number of PLS components") +
-  theme_minimal()
+       title = "CV performance vs number of PLS components")
 ```
 
 

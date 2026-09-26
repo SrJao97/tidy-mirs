@@ -5,15 +5,15 @@ author: Franck Albinet
 date: last-modified
 format:
   html:
-    toc: true
+    toc: false
 ---
 
 This page runs the whole pipeline once, start to finish: load spectra, preprocess them, tune and fit a model, test it, predict with it. Every step below gets its own full page later in the course. This page exists to show the shape of the whole thing before any of that detail.
 
-The RT (ring trial) samples used throughout this course come from a real interlaboratory study: labs in several countries, including the IAEA's, scanned the same soil samples on their own instruments, to see how much spectra disagree from lab to lab. The [paper covering it](https://www.sciencedirect.com/science/article/pii/S0016706123004019) was published in *Geoderma* in 2023. Some of its coauthors are colleagues on this course.
+The ring trial (RT) samples used throughout this course come from a real interlaboratory study: labs in several countries, including the IAEA's, scanned the same soil samples on their own instruments, to see how much spectra disagree from lab to lab. @safanelli2023 covers what came out of it.
 
 ```{r}
-#| echo: false
+# --- Config ------------------------------------------------------------------
 library(here)
 library(tidyverse)
 library(tidymodels)
@@ -21,33 +21,24 @@ library(plsmod)
 source(here("R", "prepare_data.R"))
 source(here("R", "steps.R"))
 source(here("R", "split.R"))
-theme_set(theme_bw())
 tidymodels_prefer()
-```
 
-```{r}
 SPECTRA_DIR = here("data/RT_spectra")
 SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
 TARGET <- "carbon_tot_perc"
 RESAMPLING_GRID <- seq(3995, 600, by = -5)
 ```
-## Loading
-`prepare_rt()` reads the OPUS files and the wet chemistry into one tibble. One sample, `RT_44`, is dropped as a known outlier; `5-outlier-detection.qmd` covers how that gets found.
+
 
 ```{r}
+# --- Loading ------------------------------------------------------------------
+# RT_44 dropped as a known outlier -> 5-outlier-detection.qmd
 data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE) |> filter(smp_id != "RT_44")
 ```
 
-## Preprocessing
-
-- log-scale the outcome, 
-- resample onto a common wavenumber grid, 
-- correct scatter with SNV, smooth and,
-- smooth and differentiate with Savitzky-Golay. 
-
-`4-feature-engineering.qmd` explains each one.
-
 ```{r}
+# --- Preprocessing --------------------------------------------------------------
+# log-scale, resample, SNV, Savitzky-Golay -> 4-feature-engineering.qmd
 spc_cols <- names(data)[startsWith(names(data), "wn_")]
 meta_cols <- setdiff(names(data), c(TARGET, spc_cols))
 
@@ -59,18 +50,9 @@ rec <- recipe(data) |>
   step_resample(grid = RESAMPLING_GRID) |>
   step_snv() |>
   step_sg(w = 15L, p = 3L, m = 1L)
-```
 
-## Tuning 
-
-A PLS model's main hyperparameter is how many components it keeps.
-
-- `tune()` marks that as unknown
-- `tune_grid()` searches 19 candidate values across 100 resamples
-- `select_best()` picks the one with the best average score
-- `finalize_workflow()` locks it in.
-
-```{r}
+# --- Tuning -----------------------------------------------------------------------
+# search num_comp, pick the best, lock it in -> 6-evaluating-performance.qmd
 split <- kennard_stone_split(data, prop = 50/70, cols = starts_with("wn_"))
 folds <- vfold_cv(training(split), v = 10, repeats = 10, strata = TARGET, breaks = 2)
 
@@ -81,22 +63,16 @@ wf <- workflow() |>
 tune_res <- tune_grid(wf, resamples = folds, grid = tibble(num_comp = 2:20))
 best <- select_best(tune_res, metric = "rmse")
 final_wf <- wf |> finalize_workflow(best)
-best
-```
 
-## Testing
-
-`last_fit()` fits the finalized workflow on the training split and scores it once against the test split it has never seen.
-
-```{r}
+# --- Testing ------------------------------------------------------------------------
+# fit on train, score once on the held-out test split
 final_res <- final_wf |> last_fit(split)
-collect_metrics(final_res)
-```
+collect_metrics(final_res) |> select(.metric, .estimate)
 
-## Predicting
-Every one of those predictions already happened inside `last_fit()`, on data the model never saw while fitting. `.pred` and `carbon_tot_perc` are both log10 values here, since the model was trained on the log-scaled outcome; `2-loading-data.qmd` and `3-eda.qmd` cover why that matters.
-
-```{r}
-collect_predictions(final_res) |> select(all_of(TARGET), .pred)
+# --- Predicting ---------------------------------------------------------------------
+# .pred and TARGET are both log10 here -> 2-loading-data.qmd, 3-eda.qmd
+collect_predictions(final_res) |> 
+  select(all_of(TARGET), .pred) |>
+  head()
 ```
 

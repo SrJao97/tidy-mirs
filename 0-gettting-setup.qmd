@@ -27,12 +27,12 @@ Once Positron is installed, open it and check it has found your R installation: 
 
 ## Get the course materials
 
-Go to the [course repository](https://github.com/franckalbinet/course-mirs-102026) on GitHub, click **Code** -> **Download ZIP**, then unzip it. Open the unzipped folder in Positron (`File` -> `Open Folder…`).
+Go to the [course repository](https://github.com/franckalbinet/tidy-mirs) on GitHub, click **Code** -> **Download ZIP**, then unzip it. Open the unzipped folder in Positron (`File` -> `Open Folder…`).
 
 If you already use git day to day, cloning works just as well:
 
 ```{.bash filename="Terminal"}
-git clone https://github.com/franckalbinet/course-mirs-102026.git
+git clone https://github.com/franckalbinet/tidy-mirs.git
 ```
 
 ## Install the R packages

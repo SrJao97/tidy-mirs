@@ -65,5 +65,5 @@ plot_spectra <- function(
       x = "Wavenumber (cm-1)",
       y = "Absorbance"
     ) +
-    ggplot2::theme_minimal()
+    ggplot2::theme_bw()
 }
