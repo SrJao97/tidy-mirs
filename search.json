@@ -1,0 +1,422 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Soil mid-infrared spectroscopy",
+    "section": "",
+    "text": "This course takes soil mid-infrared spectroscopy and rebuilds it inside R’s tidyverse and tidymodels. You’ll load real spectrometer output and engineer features from it. Then you’ll catch bad samples, fit and score a model, and run the same pipeline on a public global spectral library.",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "index.html#why-tidyverse-and-tidymodels",
+    "href": "index.html#why-tidyverse-and-tidymodels",
+    "title": "Soil mid-infrared spectroscopy",
+    "section": "Why tidyverse and tidymodels",
+    "text": "Why tidyverse and tidymodels\nSoil MIR spectroscopy already has capable, purpose-built R packages: prospectr and resemble, among others, cover preprocessing and spectral similarity in real depth. This course proposes an alternative: wrap that domain-specific work inside the tidyverse and tidymodels, the general frameworks most R users already know.\nFor me, four things make tidyverse and tidymodels worth building this course on.\n\nThe abstractions read naturally. recipe(), mutate(), step_snv(), each one names what it does. That keeps your attention on the domain instead of on R itself while modelling. Knowing what’s underneath still matters. This course spends real time unpacking it. But during modelling, the abstractions keep your attention on the pipeline rather than the implementation.\ntidymodels also provides a harness for modelling and validating rigorously: splitting, resampling, tuning, and evaluation all follow the same structure, one that’s easy to get wrong by hand. A pipeline built this way is reproducible and repeatable.\nBuild it once, reuse it again and again, on a new dataset, a new target, a colleague’s laptop.\nAnd building on tidyverse and tidymodels means building on a vast, expressive, mainstream ecosystem, one this course borrows rather than reinvents.\n\nBase recipes ships no steps for spectra. This course adds a handful, wrapping prospectr and resemble underneath. 4-feature-engineering.qmd tells that story properly. Everything downstream of them is standard tidymodels. We won’t reteach the tidyverse’s own documentation, its books, or its cheatsheets. Where this course points at a reference instead of re-explaining it, follow the link. That reference will outlast this course.",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "index.html#how-this-course-teaches",
+    "href": "index.html#how-this-course-teaches",
+    "title": "Soil mid-infrared spectroscopy",
+    "section": "How this course teaches",
+    "text": "How this course teaches\nEach page runs top-down. It opens with the full step at the level you’d actually use day to day, one function call that returns a fitted model and a table of results. Only then does it open up to show what’s inside. The course runs the same way: 1-full-pipeline.qmd assembles the whole thing once, then every page after it opens up one piece.\nThat’s deliberate. R functions like recipe(), mutate(), and tune() name what they do closely enough that someone with limited R experience can run the pipeline and follow its logic, even before they could write any of it themselves. Only later does peeling back a layer become worth the time. Every page that unpacks a function names its source file. Digging further is always one open file and the R console away.\nR for Data Science covers the R foundations this course assumes, or skips past to keep moving. The Posit cheatsheets cover most packages this course uses, in a page or two each. If you want to understand R as a language, not just this pipeline, start with the Foundations section of Advanced R. Finally, the Tidy Modeling with R book proposes a deep dive into the Tidymodels framework.",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "index.html#the-course",
+    "href": "index.html#the-course",
+    "title": "Soil mid-infrared spectroscopy",
+    "section": "The course",
+    "text": "The course\n\nGetting set up: install R, Positron, and the packages this course uses.\nThe full pipeline: load, preprocess, tune, test, and predict, once, end to end, before any of it gets explained.\nLoading spectral data: read a folder of OPUS files and a wet chemistry CSV into one tibble.\nExploratory data analysis: look at the spectra and the soil properties before modelling anything.\nFeature engineering: build a recipes pipeline out of resampling, SNV, and Savitzky-Golay steps.\nOutlier detection: use PCA on the preprocessed spectra to find samples a model shouldn’t trust.\nEvaluating performance: split the data, fit a model, and score it with tidymodels.\nPreparing OSSL: pull a working sample from the Open Soil Spectral Library.\nPredicting exchangeable potassium using OSSL: the same pipeline, run end to end on a public, global dataset.\n\nStart at Getting set up if your R environment isn’t ready yet.",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "7-preparing-ossl.html",
+    "href": "7-preparing-ossl.html",
+    "title": "Preparing OSSL",
+    "section": "",
+    "text": "library(here)\nlibrary(tidyverse)\n\nOSSL reference: https://docs.soilspectroscopy.org/\n\nsrc = \"https://storage.googleapis.com/soilspec4gg-public/ossl_all_L0_v1.2.csv.gz\"\ndest = here(\"data\", \"ossl_mir_k_sample.rds\")\n\n\ndata = read_csv(src)\n\n\n# Kex Minimum Detection Level \n# Ref: https://www.sciencedirect.com/science/article/pii/S2589721722000186\nkex_MDL &lt;- 0.12 # cmol(+).kg−1\n\n\nset.seed(123)\ndata |&gt; \n    filter(!is.na(k.ext_usda.a725_cmolc.kg)) |&gt; \n    filter(if_all(starts_with(\"scan_mir\"), ~ !is.na(.x))) |&gt; \n    filter(k.ext_usda.a725_cmolc.kg &gt;= kex_MDL) |&gt;\n    slice_sample(prop=0.1) |&gt; \n    select(id.layer_uuid_txt, k.ext_usda.a725_cmolc.kg, starts_with(\"scan_mir\")) |&gt;\n    rename_with(~ str_replace(.x, \"scan_mir\\\\.(\\\\d+)_abs\", \"wn_\\\\1\"), .cols = starts_with(\"scan_mir\")) |&gt; \n    rename(smp_id = id.layer_uuid_txt, kex = k.ext_usda.a725_cmolc.kg) |&gt;\n    write_rds(dest, compress = \"xz\")",
+    "crumbs": [
+      "Preparing OSSL"
+    ]
+  },
+  {
+    "objectID": "5-outlier-detection.html",
+    "href": "5-outlier-detection.html",
+    "title": "Outlier detection",
+    "section": "",
+    "text": "library(here)\nlibrary(tidyverse)\nlibrary(tidymodels)\nlibrary(skimr)\nsource(here(\"R\", \"prepare_data.R\"))\nsource(here(\"R\", \"steps.R\"))\nsource(here(\"R\", \"plots.R\"))\ntheme_set(theme_bw())\ntidymodels_prefer()\nReferences: - recipes R package (Tidymodels)\nSPECTRA_DIR = here(\"data/RT_spectra\")\nSOIL_PROP_FILE = here(\"data/RT_wetchem_soildata.csv\")\nTARGET &lt;- \"clay_perc\"\n\n# --- Preprocessing ----------------------------------------------------------\nRESAMPLE_BY &lt;- 5L\nRESAMPLING_GRID &lt;- seq(3995, 600, by = -5)\nSG_W        &lt;- 15L \nSG_P        &lt;- 3L \nSG_M        &lt;- 1L",
+    "crumbs": [
+      "Outlier detection"
+    ]
+  },
+  {
+    "objectID": "5-outlier-detection.html#getting-data",
+    "href": "5-outlier-detection.html#getting-data",
+    "title": "Outlier detection",
+    "section": "Getting data",
+    "text": "Getting data\n\ndata &lt;- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)",
+    "crumbs": [
+      "Outlier detection"
+    ]
+  },
+  {
+    "objectID": "5-outlier-detection.html#pre-processing-recipe",
+    "href": "5-outlier-detection.html#pre-processing-recipe",
+    "title": "Outlier detection",
+    "section": "Pre-processing recipe",
+    "text": "Pre-processing recipe\n\nspc_cols &lt;- names(data)[startsWith(names(data), \"wn_\")]\nmeta_cols &lt;- setdiff(names(data), c(TARGET, spc_cols))\n\n\nrec &lt;- recipe(data) |&gt;\n  update_role(all_of(TARGET),  new_role = \"outcome\") |&gt;\n  update_role(all_of(spc_cols), new_role = \"predictor\") |&gt;\n  update_role(all_of(meta_cols), new_role = \"metadata\") |&gt; \n  step_log(all_outcomes(), base = 10) |&gt;\n  step_resample(grid = RESAMPLING_GRID) |&gt; \n  step_snv() |&gt; \n  step_sg(w = SG_W, p = SG_P, m = SG_M)\n\n\nrec_prep &lt;- prep(rec, training = data, verbose = TRUE)\n\noper 1 step log [training] \noper 2 step resample [training] \noper 3 step snv [training] \noper 4 step sg [training] \nThe retained training set is ~ 0.44 Mb  in memory.\n\nrec_prep |&gt; summary()\n\n# A tibble: 674 × 4\n   variable         type      role      source  \n   &lt;chr&gt;            &lt;list&gt;    &lt;chr&gt;     &lt;chr&gt;   \n 1 smp_id           &lt;chr [3]&gt; metadata  original\n 2 source           &lt;chr [3]&gt; metadata  original\n 3 clay_perc        &lt;chr [2]&gt; outcome   original\n 4 pH_H20           &lt;chr [2]&gt; metadata  original\n 5 carbon_tot_perc  &lt;chr [2]&gt; metadata  original\n 6 carbon_org_perc  &lt;chr [2]&gt; metadata  original\n 7 potassium_cmolkg &lt;chr [2]&gt; metadata  original\n 8 phosporus_mgkg   &lt;chr [2]&gt; metadata  original\n 9 wn_3960          &lt;chr [2]&gt; predictor derived \n10 wn_3955          &lt;chr [2]&gt; predictor derived \n# ℹ 664 more rows",
+    "crumbs": [
+      "Outlier detection"
+    ]
+  },
+  {
+    "objectID": "5-outlier-detection.html#principal-component-analysis",
+    "href": "5-outlier-detection.html#principal-component-analysis",
+    "title": "Outlier detection",
+    "section": "Principal Component Analysis",
+    "text": "Principal Component Analysis\n\nrec_pca &lt;- rec_prep |&gt;\n  step_pca(\n    all_predictors(),\n    num_comp = 10,\n    options = list(\n      center = TRUE,\n      scale. = FALSE\n    ),\n    prefix = \"PC\"\n  )\n\n\nrec_pca |&gt; summary()\n\n# A tibble: 674 × 4\n   variable         type      role      source  \n   &lt;chr&gt;            &lt;list&gt;    &lt;chr&gt;     &lt;chr&gt;   \n 1 smp_id           &lt;chr [3]&gt; metadata  original\n 2 source           &lt;chr [3]&gt; metadata  original\n 3 clay_perc        &lt;chr [2]&gt; outcome   original\n 4 pH_H20           &lt;chr [2]&gt; metadata  original\n 5 carbon_tot_perc  &lt;chr [2]&gt; metadata  original\n 6 carbon_org_perc  &lt;chr [2]&gt; metadata  original\n 7 potassium_cmolkg &lt;chr [2]&gt; metadata  original\n 8 phosporus_mgkg   &lt;chr [2]&gt; metadata  original\n 9 wn_3960          &lt;chr [2]&gt; predictor derived \n10 wn_3955          &lt;chr [2]&gt; predictor derived \n# ℹ 664 more rows\n\n\n\nrec_pca_prep &lt;- rec_pca |&gt; prep()\n\n\nGetting the PCA Loadings\n\nloadings &lt;- tidy(rec_pca_prep, number = 5, type = \"coef\")\n\n\nloadings &lt;- loadings |&gt; \n  mutate(wn = as.integer(str_remove(terms, \"wn_\"))) |&gt; \n  filter(component %in% paste0(\"PC\", 1:4))\n\n\nggplot(loadings, aes(wn, value)) +\n    geom_line(alpha = 1, colour = \"steelblue\") +\n    facet_wrap(~ component, ncol = 1, scales = \"free_y\") +\n    scale_x_reverse(\n        breaks = seq(500, 4000, by = 250),\n        minor_breaks = seq(500, 4000, by = 125)) +\n    labs(\n        x = \"Wavenumber (cm⁻¹)\",\n        y = \"Loading\") +\n    theme_minimal()\n\n\n\n\n\n\n\n\n\n\nGetting PCA Scores\n\nscores &lt;- bake(\n  rec_pca_prep,\n  new_data = NULL\n)\n\n\nscores |&gt; glimpse()\n\nRows: 70\nColumns: 18\n$ smp_id           &lt;chr&gt; \"RT_01\", \"RT_02\", \"RT_03\", \"RT_04\", \"RT_05\", \"RT_06\",…\n$ source           &lt;chr&gt; \"KSSL\", \"KSSL\", \"KSSL\", \"KSSL\", \"KSSL\", \"KSSL\", \"KSSL…\n$ clay_perc        &lt;dbl&gt; 0.79809724, 0.64781509, 1.62531152, 1.23311673, 1.236…\n$ pH_H20           &lt;dbl&gt; 4.8525, 4.5850, 4.2300, 6.5300, 6.4700, 6.9200, 6.590…\n$ carbon_tot_perc  &lt;dbl&gt; 0.61170, 3.48602, 0.25716, 1.97755, 2.14765, 2.04600,…\n$ carbon_org_perc  &lt;dbl&gt; 0.61170, 3.48602, 0.25716, 1.97755, 2.13584, 2.02458,…\n$ potassium_cmolkg &lt;dbl&gt; 0.26906, 0.23349, 0.29109, 0.49925, 0.59977, 0.64127,…\n$ phosporus_mgkg   &lt;dbl&gt; 5.59999, 19.28365, NA, NA, NA, NA, NA, 0.41410, 3.255…\n$ PC01             &lt;dbl&gt; -0.53350402, 0.44938998, -0.15245125, -0.06433706, -0…\n$ PC02             &lt;dbl&gt; -0.115064485, -0.272830239, 0.295894880, -0.107425759…\n$ PC03             &lt;dbl&gt; -0.1980030932, 0.0045132263, 0.0711042342, -0.1842744…\n$ PC04             &lt;dbl&gt; -0.19217750, 0.17667577, 0.33725318, 0.01946727, 0.03…\n$ PC05             &lt;dbl&gt; 0.027544007, 0.086179889, -0.358854723, 0.097110095, …\n$ PC06             &lt;dbl&gt; -0.214696319, 0.069655729, -0.047520495, 0.015120929,…\n$ PC07             &lt;dbl&gt; 0.0935389010, 0.0980032086, 0.0868385490, -0.01090680…\n$ PC08             &lt;dbl&gt; -0.067557339, -0.107265147, -0.064981214, 0.066044962…\n$ PC09             &lt;dbl&gt; 0.017459370, -0.004556574, 0.085195334, -0.014956385,…\n$ PC10             &lt;dbl&gt; -0.0422291439, -0.1523821419, -0.0218271534, -0.00524…\n\nnames(scores)\n\n [1] \"smp_id\"           \"source\"           \"clay_perc\"        \"pH_H20\"          \n [5] \"carbon_tot_perc\"  \"carbon_org_perc\"  \"potassium_cmolkg\" \"phosporus_mgkg\"  \n [9] \"PC01\"             \"PC02\"             \"PC03\"             \"PC04\"            \n[13] \"PC05\"             \"PC06\"             \"PC07\"             \"PC08\"            \n[17] \"PC09\"             \"PC10\"            \n\n\n\nscores |&gt;\n  ggplot(aes(PC01, PC02)) +\n  geom_point() +\n  theme_minimal()\n\n\n\n\n\n\n\n\n\nscores |&gt;\n  mutate(distance = sqrt(PC01^2 + PC02^2)) |&gt;\n  slice_max(distance, n = 10) |&gt;\n  select(smp_id, PC01, PC02, distance, clay_perc, carbon_org_perc)\n\n# A tibble: 10 × 6\n   smp_id   PC01    PC02 distance clay_perc carbon_org_perc\n   &lt;chr&gt;   &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;           &lt;dbl&gt;\n 1 RT_44  -0.183 -0.842     0.862 -Inf                NA   \n 2 RT_42   0.687 -0.384     0.787   NA                49.1 \n 3 RT_09   0.614 -0.299     0.683    1.11             16.2 \n 4 RT_25  -0.648 -0.0706    0.652    1.11              1.10\n 5 RT_37  -0.643 -0.0981    0.650    1.12              1.10\n 6 RT_35   0.513 -0.398     0.649    1.22              2.78\n 7 RT_23   0.576 -0.293     0.647   -0.0342           10.9 \n 8 RT_22   0.491 -0.409     0.640    1.44              3.94\n 9 RT_36  -0.629 -0.0758    0.633    1.11              1.07\n10 RT_34   0.487 -0.402     0.632    1.40              3.64\n\n\n\nggplot(scores, aes(PC01, PC02, colour = clay_perc)) +\n  geom_point(size = 2.5) +\n  scale_colour_viridis_c() +\n  theme_minimal()\n\n\n\n\n\n\n\n\n\nscores |&gt;\n  slice_min(PC02, n = 5) |&gt;\n  select(smp_id, PC01, PC02, clay_perc, carbon_org_perc)\n\n# A tibble: 5 × 5\n  smp_id   PC01   PC02 clay_perc carbon_org_perc\n  &lt;chr&gt;   &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;           &lt;dbl&gt;\n1 RT_44  -0.183 -0.842   -Inf              NA   \n2 RT_22   0.491 -0.409      1.44            3.94\n3 RT_34   0.487 -0.402      1.40            3.64\n4 RT_35   0.513 -0.398      1.22            2.78\n5 RT_42   0.687 -0.384     NA              49.1 \n\n\n\n\nAre they outliers?\n\nrec &lt;- recipe(data) |&gt;\n  update_role(all_of(TARGET),  new_role = \"outcome\") |&gt;\n  update_role(all_of(spc_cols), new_role = \"predictor\") |&gt;\n  update_role(all_of(meta_cols), new_role = \"metadata\") |&gt; \n  step_log(all_outcomes(), base = 10) |&gt;\n  step_resample(grid = RESAMPLING_GRID) |&gt; \n  step_snv()\n\n\nrec_prep &lt;- prep(rec, training = data, verbose = TRUE)\n\noper 1 step log [training] \noper 2 step resample [training] \noper 3 step snv [training] \nThe retained training set is ~ 0.45 Mb  in memory.\n\ndata_processed &lt;- bake(\n  rec_prep,\n  new_data = NULL\n)\n\n\ndata_processed |&gt; plot_spectra(highlight = c(\"RT_44\", \"RT_22\"))",
+    "crumbs": [
+      "Outlier detection"
+    ]
+  },
+  {
+    "objectID": "5-outlier-detection.html#todo",
+    "href": "5-outlier-detection.html#todo",
+    "title": "Outlier detection",
+    "section": "TODO",
+    "text": "TODO\n\nNAPT_smp_id = data |&gt; filter(source == \"NAPT\") |&gt; select(smp_id) |&gt; pull(smp_id)\nNAPT_smp_id\n\n [1] \"RT_61\" \"RT_62\" \"RT_63\" \"RT_64\" \"RT_65\" \"RT_66\" \"RT_67\" \"RT_68\" \"RT_69\"\n[10] \"RT_70\"\n\n\n\ndata_processed |&gt; plot_spectra(highlight = NAPT_smp_id)",
+    "crumbs": [
+      "Outlier detection"
+    ]
+  },
+  {
+    "objectID": "3-eda.html",
+    "href": "3-eda.html",
+    "title": "Exploratory Data Analysis",
+    "section": "",
+    "text": "library(here)\nlibrary(tidyverse)\nlibrary(tidymodels)\nsource(here(\"R\", \"prepare_data.R\"))\nsource(here(\"R\", \"plots.R\"))\ntheme_set(theme_bw())\ntidymodels_prefer()\nSPECTRA_DIR = here(\"data/RT_spectra\")\nSOIL_PROP_FILE = here(\"data/RT_wetchem_soildata.csv\")",
+    "crumbs": [
+      "Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "3-eda.html#getting-data",
+    "href": "3-eda.html#getting-data",
+    "title": "Exploratory Data Analysis",
+    "section": "Getting data",
+    "text": "Getting data\nThis loads the same tibble 2-loading-data.qmd builds, in one call.\n\ndata &lt;- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)",
+    "crumbs": [
+      "Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "3-eda.html#summary-statistics",
+    "href": "3-eda.html#summary-statistics",
+    "title": "Exploratory Data Analysis",
+    "section": "Summary statistics",
+    "text": "Summary statistics\nThree tools summarize the same tibble here. summary() is base R’s quick per-column stats. glimpse() trades full statistics for seeing every column at a glance. skimr::skim() adds missingness and a spark histogram per column, worth it once a dataset has more than a handful of properties. The last two are shown but not run here. Both dump too much to read usefully once wavenumber columns are involved. Try them yourself in the R console.\n\ndata |&gt; \n    select(!starts_with(\"wn_\")) |&gt;\n    summary()\n\n    smp_id             source            clay_perc         pH_H20     \n Length:70          Length:70          Min.   : 0.00   Min.   :3.348  \n Class :character   Class :character   1st Qu.:15.99   1st Qu.:5.544  \n Mode  :character   Mode  :character   Median :21.09   Median :6.094  \n                                       Mean   :22.61   Mean   :6.369  \n                                       3rd Qu.:30.39   3rd Qu.:7.470  \n                                       Max.   :49.30   Max.   :8.570  \n                                       NA's   :1                      \n carbon_tot_perc    carbon_org_perc    potassium_cmolkg  phosporus_mgkg     \n Min.   : 0.09199   Min.   : 0.08328   Min.   :0.04737   Min.   :  0.01929  \n 1st Qu.: 0.82700   1st Qu.: 0.47918   1st Qu.:0.28902   1st Qu.:  2.92316  \n Median : 1.81076   Median : 1.12734   Median :0.43173   Median :  5.78705  \n Mean   : 2.75553   Mean   : 2.49940   Mean   :0.56347   Mean   : 20.17018  \n 3rd Qu.: 2.85240   3rd Qu.: 2.35857   3rd Qu.:0.80041   3rd Qu.: 13.01283  \n Max.   :49.10375   Max.   :49.10375   Max.   :2.83900   Max.   :243.00000  \n NA's   :1          NA's   :1          NA's   :1         NA's   :36         \n\n\n\nglimpse(data |&gt; select(!starts_with(\"wn_\")))\n\n\ndata |&gt; \n  select(!starts_with(\"wn_\")) |&gt;\n  skimr::skim()",
+    "crumbs": [
+      "Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "3-eda.html#soil-properties-histogram",
+    "href": "3-eda.html#soil-properties-histogram",
+    "title": "Exploratory Data Analysis",
+    "section": "Soil properties histogram",
+    "text": "Soil properties histogram\n\nA single histogram\n\n\n\n\n\n\nNoteBuilding a plot in layers\n\n\n\nggplot2 builds a plot in layers. ggplot() sets up the data and the mapping from columns to visual properties through aes(). Each geom_*() adds one layer: points, lines, histograms. The ggplot2 book covers every layer this course uses and plenty it doesn’t.\n\n\nclay_perc’s histogram is roughly the shape you’d expect: no long tail, nothing to fix.\n\ndata |&gt; \n    ggplot(aes(x = clay_perc)) +\n    geom_histogram()\n\n\n\n\n\n\n\n\npotassium_cmolkg isn’t so well-behaved. The QQ-plots below make the case properly. Log-transforming the column itself is one fix:\n\ndata |&gt;\n  mutate(potassium_cmolkg = log10(potassium_cmolkg)) |&gt;\n  ggplot(aes(x = potassium_cmolkg)) +\n  geom_histogram(bins=10, na.rm = TRUE)\n\n\n\n\n\n\n\n\nOr transform just the axis display, keeping the original units as labels rather than the log values:\n\ndata |&gt;\n    ggplot(aes(x = potassium_cmolkg)) +\n    geom_histogram(bins=10) +\n    scale_x_log10()\n\n\n\n\n\n\n\n\n\n\nAll soil properties\nThis generalizes the same log-scaled view to every property at once. pH_H20 is left out. It’s already a log scale. Logging it again would make its skew worse, not better.\n\nsoil_long &lt;- data |&gt; \n  select(!starts_with(\"wn_\")) |&gt;\n  pivot_longer(\n    where(is.numeric),\n    names_to = \"soil_prop\",\n    values_to = \"value\"\n  )\n\n\nsoil_long |&gt; \n  filter(soil_prop != \"pH_H20\") |&gt;\n  ggplot(aes(x = value)) +\n  geom_histogram(bins=10) +\n  facet_wrap(~soil_prop, scales = \"free_x\") +\n  scale_x_log10()",
+    "crumbs": [
+      "Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "3-eda.html#soil-properties-qq-plots",
+    "href": "3-eda.html#soil-properties-qq-plots",
+    "title": "Exploratory Data Analysis",
+    "section": "Soil properties QQ-plots",
+    "text": "Soil properties QQ-plots\nA QQ plot checks a variable against a normal distribution. Points that follow the diagonal line come from something close to normal. Points that curve away from it don’t.\n\nsoil_long |&gt; \n  ggplot(aes(sample = value)) +\n  stat_qq(na.rm = TRUE) +\n  stat_qq_line(na.rm = TRUE) +\n  facet_wrap(~soil_prop, scales = \"free\")\n\n\n\n\n\n\n\n\ncarbon_org_perc and carbon_tot_perc curve furthest from the line, the same properties 2-loading-data.qmd flagged potassium_cmolkg for, only more so. Log-transforming pulls most of them back toward it:\n\nsoil_long |&gt; \n  filter(value &gt; 0) |&gt;\n  mutate(log_value = log(value)) |&gt;\n  ggplot(aes(sample = log_value)) +\n  stat_qq(na.rm = TRUE) +\n  stat_qq_line(na.rm = TRUE) +\n  facet_wrap(~soil_prop, scales = \"free\")\n\n\n\n\n\n\n\n\ncarbon_org_perc makes the clearest case. Its raw skewness is 6.4, against 2.3 for potassium_cmolkg. Log-transformed, that drops to 0.1. The range runs from 0.08% to 49%, a roughly 600-fold spread across 69 samples. Three reasons favor fitting a model on log10(carbon_org_perc) instead of the raw value.\nA model fit on the raw scale can predict a negative carbon percentage. Back-transforming a log-scale prediction with 10^y never can.\nSquared-error loss on the raw scale weighs every percentage point of error the same, wherever it falls on the scale. That lets the handful of high-carbon samples dominate the loss, since their absolute errors are bigger. On the log scale, the same absolute error costs more for a low-carbon sample than a high one. The model can’t just chase the few high values at the expense of everyone else.\nSkewed variables like this one also tend to have variance that grows with the value. Most classical inference tools assume that variance stays constant across the range. The log transform tends to even it out.\nThere’s a cost too. Coefficients and metrics like RMSE come back in log units, not percent carbon. Reading them in the original units takes a deliberate back-transform.",
+    "crumbs": [
+      "Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "3-eda.html#soil-properties-correlation",
+    "href": "3-eda.html#soil-properties-correlation",
+    "title": "Exploratory Data Analysis",
+    "section": "Soil properties correlation",
+    "text": "Soil properties correlation\nOrganic carbon and phosphorus correlate on the log scale: r = 0.40 (p = 0.018, n = 34, using only samples with both measured). It isn’t a tight relationship. Soils richer in organic matter tend to hold more phosphorus too.\n\ndata |&gt;\n  filter(carbon_org_perc &gt; 0, phosporus_mgkg &gt; 0) |&gt;\n  ggplot(aes(\n    x = carbon_org_perc,\n    y = phosporus_mgkg\n  )) +\n  geom_point() +\n  scale_x_log10() +\n  scale_y_log10() +\n  labs(\n    x = \"Organic carbon (%)\",\n    y = \"Phosphorus (mg/kg)\"\n  )",
+    "crumbs": [
+      "Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "3-eda.html#spectra",
+    "href": "3-eda.html#spectra",
+    "title": "Exploratory Data Analysis",
+    "section": "Spectra",
+    "text": "Spectra\n\nAll spectra\n\ndata |&gt; \n    plot_spectra()\n\n\n\n\n\n\n\n\n\n\nUnpacking plot_spectra()\nplot_spectra() reshapes the wavenumber columns into long format, then builds the plot below in stages. Colouring every one of the 70 samples by ID, the first attempt, produces a legend nobody can read:\n\nspectra &lt;- data |&gt;\n  pivot_longer(\n    cols = starts_with(\"wn_\"),\n    names_to = \"wavenumber\",\n    names_prefix = \"wn_\",\n    names_transform = list(wavenumber = as.numeric),\n    values_to = \"absorbance\"\n  )\n\n\nggplot(spectra, aes(wavenumber, absorbance, group = smp_id, colour = smp_id)) +\n  geom_line() +\n  scale_x_reverse() +\n  labs(\n    x = \"Wavenumber\",\n    y = \"Absorbance\",\n    colour = \"Sample\"\n  ) +\n  theme_minimal()\n\n\n\n\n\n\n\n\nDropping the per-sample colour and blending lines with alpha instead makes the overall shape visible:\n\nggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +\n  geom_line(alpha = 0.35, colour = \"steelblue\") +\n  scale_x_reverse() +\n  theme_minimal()\n\n\n\n\n\n\n\n\nTidying the axis breaks and labels gets to what plot_spectra() actually returns:\n\nggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +\n    geom_line(alpha = 0.35, colour = \"steelblue\") +\n    scale_x_reverse(\n        breaks = seq(500, 4000, by = 250),\n        minor_breaks = seq(500, 4000, by = 125)) +\n    labs(\n        x = \"Wavenumber (cm-1)\",\n        y = \"Absorbance\",\n        colour = \"Sample\") +\n    theme_minimal()\n\n\n\n\n\n\n\n\n\n\nColouring by organic carbon\nMean absorbance across the whole spectrum correlates weakly with organic carbon: r = 0.32, p = 0.007. Higher-carbon samples sit a little higher on the y-axis overall. Colouring by carbon_org_perc makes that pattern visible directly on the spectra:\n\nggplot(\n  spectra,\n  aes(\n    x = wavenumber,\n    y = absorbance,\n    group = smp_id,\n    colour = carbon_org_perc\n  )\n) +\n  geom_line(alpha = 0.5) +\n  scale_x_reverse(\n    breaks = seq(500, 4000, by = 250),\n    minor_breaks = seq(500, 4000, by = 125)\n  ) +\n  scale_colour_viridis_c(\n    name = \"Organic carbon (%)\",\n    na.value = \"grey70\"\n  ) +\n  labs(\n    x = \"Wavenumber (cm⁻¹)\",\n    y = \"Absorbance\"\n  ) +\n  theme_minimal()\n\n\n\n\n\n\n\n\n\n\nGrouping by carbon quartile\nThis splits the same idea into four groups instead of a continuous gradient, easier to compare by eye than shades of one colour:\n\nspectra_grouped &lt;- spectra |&gt;\n  filter(!is.na(carbon_org_perc)) |&gt;\n  mutate(\n    carbon_group = ntile(carbon_org_perc, 4),\n    carbon_group = factor(\n      carbon_group,\n      labels = c(\"Lowest\", \"Low–middle\", \"High–middle\", \"Highest\")\n    )\n  )\n\n\nggplot(\n  spectra_grouped,\n  aes(wavenumber, absorbance, group = smp_id)\n) +\n  geom_line(alpha = 0.35, colour = \"steelblue\") +\n  facet_wrap(~ carbon_group) +\n  scale_x_reverse() +\n  labs(\n    x = \"Wavenumber (cm⁻¹)\",\n    y = \"Absorbance\",\n    title = \"Spectra grouped by organic carbon\"\n  )\n\n\n\n\n\n\n\n\n\n\nZooming into a wavenumber range\nThis shows the full spectrum again, immediately before zooming in on 2200–2700 cm⁻¹. That’s a comparatively flat stretch. Mean absorbance there runs lower and less variable across samples (1.31, sd 0.14) than the spectrum as a whole (1.72, sd 0.17). coord_cartesian() crops the view without dropping any data, unlike setting axis limits directly.\n\nspectra_no_na &lt;- spectra |&gt;\n  filter(!is.na(carbon_org_perc))\n\n\nggplot(\n  spectra_no_na,\n  aes(wavenumber, absorbance, group = smp_id)\n) +\n  geom_line(alpha = 0.35, colour = \"steelblue\") +\n  scale_x_reverse(\n    breaks = seq(500, 4000, by = 250),\n    minor_breaks = seq(500, 4000, by = 125)\n  ) +\n  labs(\n    x = \"Wavenumber (cm⁻¹)\",\n    y = \"Absorbance\"\n  ) +\n  theme_minimal()\n\n\n\n\n\n\n\n\n\nggplot(\n  spectra_no_na,\n  aes(wavenumber, absorbance, group = smp_id)\n) +\n  geom_line(alpha = 0.35, colour = \"steelblue\") +\n  scale_x_reverse(\n    breaks = seq(2200, 2700, by = 100),\n    minor_breaks = seq(2200, 2700, by = 50)\n  ) +\n  coord_cartesian(xlim = c(2700, 2200)) +\n  labs(\n    x = \"Wavenumber (cm⁻¹)\",\n    y = \"Absorbance\"\n  ) +\n  theme_minimal()",
+    "crumbs": [
+      "Exploratory Data Analysis"
+    ]
+  },
+  {
+    "objectID": "1-full-pipeline.html",
+    "href": "1-full-pipeline.html",
+    "title": "The full pipeline",
+    "section": "",
+    "text": "This page runs the whole pipeline once, start to finish: load spectra, preprocess them, tune and fit a model, test it, predict with it. Every step below gets its own full page later in the course. This page exists to show the shape of the whole thing before any of that detail.\nThe RT (ring trial) samples used throughout this course come from a real interlaboratory study: labs in several countries, including the IAEA’s, scanned the same soil samples on their own instruments, to see how much spectra disagree from lab to lab. The paper covering it was published in Geoderma in 2023. Some of its coauthors are colleagues on this course.\nSPECTRA_DIR = here(\"data/RT_spectra\")\nSOIL_PROP_FILE = here(\"data/RT_wetchem_soildata.csv\")\nTARGET &lt;- \"carbon_tot_perc\"\nRESAMPLING_GRID &lt;- seq(3995, 600, by = -5)",
+    "crumbs": [
+      "The full pipeline"
+    ]
+  },
+  {
+    "objectID": "1-full-pipeline.html#loading",
+    "href": "1-full-pipeline.html#loading",
+    "title": "The full pipeline",
+    "section": "Loading",
+    "text": "Loading\nprepare_rt() reads the OPUS files and the wet chemistry into one tibble. One sample, RT_44, is dropped as a known outlier; 5-outlier-detection.qmd covers how that gets found.\n\ndata &lt;- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE) |&gt; filter(smp_id != \"RT_44\")",
+    "crumbs": [
+      "The full pipeline"
+    ]
+  },
+  {
+    "objectID": "1-full-pipeline.html#preprocessing",
+    "href": "1-full-pipeline.html#preprocessing",
+    "title": "The full pipeline",
+    "section": "Preprocessing",
+    "text": "Preprocessing\n\nlog-scale the outcome,\nresample onto a common wavenumber grid,\ncorrect scatter with SNV, smooth and,\nsmooth and differentiate with Savitzky-Golay.\n\n4-feature-engineering.qmd explains each one.\n\nspc_cols &lt;- names(data)[startsWith(names(data), \"wn_\")]\nmeta_cols &lt;- setdiff(names(data), c(TARGET, spc_cols))\n\nrec &lt;- recipe(data) |&gt;\n  update_role(all_of(TARGET), new_role = \"outcome\") |&gt;\n  update_role(all_of(spc_cols), new_role = \"predictor\") |&gt;\n  update_role(all_of(meta_cols), new_role = \"metadata\") |&gt;\n  step_log(all_outcomes(), base = 10) |&gt;\n  step_resample(grid = RESAMPLING_GRID) |&gt;\n  step_snv() |&gt;\n  step_sg(w = 15L, p = 3L, m = 1L)",
+    "crumbs": [
+      "The full pipeline"
+    ]
+  },
+  {
+    "objectID": "1-full-pipeline.html#tuning",
+    "href": "1-full-pipeline.html#tuning",
+    "title": "The full pipeline",
+    "section": "Tuning",
+    "text": "Tuning\nA PLS model’s main hyperparameter is how many components it keeps.\n\ntune() marks that as unknown\ntune_grid() searches 19 candidate values across 100 resamples\nselect_best() picks the one with the best average score\nfinalize_workflow() locks it in.\n\n\nsplit &lt;- kennard_stone_split(data, prop = 50/70, cols = starts_with(\"wn_\"))\nfolds &lt;- vfold_cv(training(split), v = 10, repeats = 10, strata = TARGET, breaks = 2)\n\nwf &lt;- workflow() |&gt;\n  add_recipe(rec) |&gt;\n  add_model(pls(num_comp = tune()) |&gt; set_engine(\"mixOmics\") |&gt; set_mode(\"regression\"))\n\ntune_res &lt;- tune_grid(wf, resamples = folds, grid = tibble(num_comp = 2:20))\nbest &lt;- select_best(tune_res, metric = \"rmse\")\nfinal_wf &lt;- wf |&gt; finalize_workflow(best)\nbest\n\n# A tibble: 1 × 2\n  num_comp .config         \n     &lt;int&gt; &lt;chr&gt;           \n1        7 pre0_mod06_post0",
+    "crumbs": [
+      "The full pipeline"
+    ]
+  },
+  {
+    "objectID": "1-full-pipeline.html#testing",
+    "href": "1-full-pipeline.html#testing",
+    "title": "The full pipeline",
+    "section": "Testing",
+    "text": "Testing\nlast_fit() fits the finalized workflow on the training split and scores it once against the test split it has never seen.\n\nfinal_res &lt;- final_wf |&gt; last_fit(split)\ncollect_metrics(final_res)\n\n# A tibble: 2 × 4\n  .metric .estimator .estimate .config        \n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;          \n1 rmse    standard       0.131 pre0_mod0_post0\n2 rsq     standard       0.933 pre0_mod0_post0",
+    "crumbs": [
+      "The full pipeline"
+    ]
+  },
+  {
+    "objectID": "1-full-pipeline.html#predicting",
+    "href": "1-full-pipeline.html#predicting",
+    "title": "The full pipeline",
+    "section": "Predicting",
+    "text": "Predicting\nEvery one of those predictions already happened inside last_fit(), on data the model never saw while fitting. .pred and carbon_tot_perc are both log10 values here, since the model was trained on the log-scaled outcome; 2-loading-data.qmd and 3-eda.qmd cover why that matters.\n\ncollect_predictions(final_res) |&gt; select(all_of(TARGET), .pred)\n\n# A tibble: 20 × 2\n   carbon_tot_perc    .pred\n             &lt;dbl&gt;    &lt;dbl&gt;\n 1          0.296   0.322  \n 2          0.332   0.306  \n 3          0.311   0.320  \n 4          0.318   0.308  \n 5          0.258   0.254  \n 6          0.0192  0.00379\n 7         -0.596  -0.451  \n 8          0.0269  0.00132\n 9          0.0469 -0.0110 \n10         -0.551  -0.318  \n11          0.0293 -0.0443 \n12         -0.613  -0.441  \n13         -0.569  -0.267  \n14         -0.595  -0.292  \n15          0.519   0.624  \n16          0.464   0.601  \n17          0.280   0.220  \n18         -0.240  -0.158  \n19          0.469   0.445  \n20          0.283   0.216",
+    "crumbs": [
+      "The full pipeline"
+    ]
+  },
+  {
+    "objectID": "0-gettting-setup.html",
+    "href": "0-gettting-setup.html",
+    "title": "Getting set up",
+    "section": "",
+    "text": "Download R 4.4 or later from CRAN and run the installer for your platform (Windows, macOS, Linux). This project was built against R 4.5.3. Any recent 4.x release will work.",
+    "crumbs": [
+      "Getting set up"
+    ]
+  },
+  {
+    "objectID": "0-gettting-setup.html#install-r",
+    "href": "0-gettting-setup.html#install-r",
+    "title": "Getting set up",
+    "section": "",
+    "text": "Download R 4.4 or later from CRAN and run the installer for your platform (Windows, macOS, Linux). This project was built against R 4.5.3. Any recent 4.x release will work.",
+    "crumbs": [
+      "Getting set up"
+    ]
+  },
+  {
+    "objectID": "0-gettting-setup.html#install-positron",
+    "href": "0-gettting-setup.html#install-positron",
+    "title": "Getting set up",
+    "section": "Install Positron",
+    "text": "Install Positron\nDownload Positron and install it.\nBoth Positron and RStudio are built by Posit, but only Positron keeps getting new features. RStudio keeps stability, security and bug-fix updates. Positron is built on the same open-source foundation as VS Code and runs R and Python side by side in one place. For anyone here who already works in Python day to day, the same editor covers both languages.\nOnce Positron is installed, open it and check it has found your R installation: bottom status bar -&gt; interpreter picker, or Cmd/Ctrl+Shift+P -&gt; “R: Select Interpreter”.",
+    "crumbs": [
+      "Getting set up"
+    ]
+  },
+  {
+    "objectID": "0-gettting-setup.html#get-the-course-materials",
+    "href": "0-gettting-setup.html#get-the-course-materials",
+    "title": "Getting set up",
+    "section": "Get the course materials",
+    "text": "Get the course materials\nGo to the course repository on GitHub, click Code -&gt; Download ZIP, then unzip it. Open the unzipped folder in Positron (File -&gt; Open Folder…).\nIf you already use git day to day, cloning works just as well:\n\n\nTerminal\n\ngit clone https://github.com/franckalbinet/course-mirs-102026.git",
+    "crumbs": [
+      "Getting set up"
+    ]
+  },
+  {
+    "objectID": "0-gettting-setup.html#install-the-r-packages",
+    "href": "0-gettting-setup.html#install-the-r-packages",
+    "title": "Getting set up",
+    "section": "Install the R packages",
+    "text": "Install the R packages\nThis project uses renv to pin exact package versions, the same idea as Python’s venv or conda. It gives you a project-local library instead of your regular R install. renv.lock records exactly what’s installed. Everyone in the course runs the same versions we tested against.\nOpen the project in Positron and run, in the R console:\n\n\nConsole\n\nrenv::restore()\n\nThe first run downloads and installs everything listed in renv.lock into a project-local library. It can take a few minutes and, on some platforms, needs to compile a couple of packages from source. It touches nothing outside this project folder.\nrenv::restore() can fail behind a restrictive network proxy, on a locked-down institutional laptop, or in similar cases. If it does, install the same packages directly into your regular R library instead:\n\n\nConsole\n\ninstall.packages(c(\n  \"tidyverse\", \"tidymodels\", \"here\", \"opusreader2\",\n  \"skimr\", \"plsmod\", \"prospectr\", \"resemble\", \"hexbin\", \"glue\"\n))\n\ninstall.packages(\"BiocManager\")\nBiocManager::install(\"mixOmics\")\n\nThis gets you everything you need for the course. It isn’t version-pinned. Let us know if something behaves differently from the demo.",
+    "crumbs": [
+      "Getting set up"
+    ]
+  },
+  {
+    "objectID": "0-gettting-setup.html#check-everything-works",
+    "href": "0-gettting-setup.html#check-everything-works",
+    "title": "Getting set up",
+    "section": "Check everything works",
+    "text": "Check everything works\n\nlibrary(tidyverse)\nlibrary(tidymodels)\nlibrary(here)\nlibrary(opusreader2)\nlibrary(prospectr)\nlibrary(resemble)\nlibrary(plsmod)\n\npackageVersion(\"mixOmics\")\n\n[1] '6.34.0'\n\n\nIf that runs without errors, you’re set up for the course.",
+    "crumbs": [
+      "Getting set up"
+    ]
+  },
+  {
+    "objectID": "2-loading-data.html",
+    "href": "2-loading-data.html",
+    "title": "Loading spectral data",
+    "section": "",
+    "text": "1-full-pipeline.qmd already called prepare_rt() once, to get moving. This page opens that call up. It loads spectra and soil chemistry for this dataset’s soil samples. It turns them into the single tibble every later page in this course starts from. source() runs a plain R script and adds what it defines to your session, the job import does in Python. read_opus_tbl() and prepare_rt(), the two functions this page uses, live in R/io.R and R/prepare_data.R.\nlibrary(here)\nlibrary(tidyverse)\nsource(here(\"R\", \"io.R\"))\nsource(here(\"R\", \"prepare_data.R\"))\nTwo paths to set: the folder holding the OPUS files the spectrometer wrote, and the CSV holding the wet chemistry measured on the same samples.\nSPECTRA_DIR = here(\"data/RT_spectra\")\nSOIL_PROP_FILE = here(\"data/RT_wetchem_soildata.csv\")",
+    "crumbs": [
+      "Loading spectral data"
+    ]
+  },
+  {
+    "objectID": "2-loading-data.html#loading-and-joining-everything-in-one-call",
+    "href": "2-loading-data.html#loading-and-joining-everything-in-one-call",
+    "title": "Loading spectral data",
+    "section": "Loading and joining everything in one call",
+    "text": "Loading and joining everything in one call\nprepare_rt() does the whole job: read every OPUS file, average each sample’s repeat scans, load the wet chemistry, and join the two by sample ID.\n\ndata &lt;- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)\ndata\n\n# A tibble: 70 × 1,715\n   smp_id wn_3997.5 wn_3995.5 wn_3993.4 wn_3991.4 wn_3989.3 wn_3987.3 wn_3985.2\n   &lt;chr&gt;      &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;\n 1 RT_01       1.02      1.02      1.02      1.02      1.02      1.02      1.02\n 2 RT_02       1.16      1.16      1.16      1.16      1.16      1.16      1.16\n 3 RT_03       1.22      1.22      1.23      1.23      1.23      1.23      1.23\n 4 RT_04       1.10      1.10      1.10      1.10      1.10      1.10      1.10\n 5 RT_05       1.13      1.13      1.13      1.13      1.13      1.13      1.13\n 6 RT_06       1.12      1.12      1.12      1.12      1.12      1.12      1.12\n 7 RT_07       1.12      1.12      1.12      1.12      1.12      1.12      1.12\n 8 RT_08       1.15      1.15      1.15      1.15      1.15      1.15      1.15\n 9 RT_09       1.38      1.38      1.38      1.38      1.38      1.38      1.38\n10 RT_10       1.10      1.10      1.10      1.10      1.10      1.10      1.10\n# ℹ 60 more rows\n# ℹ 1,707 more variables: wn_3983.2 &lt;dbl&gt;, wn_3981.1 &lt;dbl&gt;, wn_3979.1 &lt;dbl&gt;,\n#   wn_3977.0 &lt;dbl&gt;, wn_3975.0 &lt;dbl&gt;, wn_3972.9 &lt;dbl&gt;, wn_3970.9 &lt;dbl&gt;,\n#   wn_3968.8 &lt;dbl&gt;, wn_3966.8 &lt;dbl&gt;, wn_3964.7 &lt;dbl&gt;, wn_3962.7 &lt;dbl&gt;,\n#   wn_3960.6 &lt;dbl&gt;, wn_3958.6 &lt;dbl&gt;, wn_3956.5 &lt;dbl&gt;, wn_3954.5 &lt;dbl&gt;,\n#   wn_3952.4 &lt;dbl&gt;, wn_3950.3 &lt;dbl&gt;, wn_3948.3 &lt;dbl&gt;, wn_3946.2 &lt;dbl&gt;,\n#   wn_3944.2 &lt;dbl&gt;, wn_3942.1 &lt;dbl&gt;, wn_3940.1 &lt;dbl&gt;, wn_3938.0 &lt;dbl&gt;, …\n\n\n70 soil samples come back as 70 rows. Each row carries a wavenumber column for every point on the spectrum (wn_*) alongside the wet chemistry: clay percentage, pH, total and organic carbon, potassium, phosphorus.",
+    "crumbs": [
+      "Loading spectral data"
+    ]
+  },
+  {
+    "objectID": "2-loading-data.html#unpacking-prepare_rt",
+    "href": "2-loading-data.html#unpacking-prepare_rt",
+    "title": "Loading spectral data",
+    "section": "Unpacking prepare_rt()",
+    "text": "Unpacking prepare_rt()\nThe rest of this page opens up what prepare_rt() does underneath, one step at a time. Open R/prepare_data.R alongside this page if you want to follow the source directly. Each step below matches one chunk of that function.\n\nReading OPUS spectra files\nThe lab’s Bruker instrument writes one OPUS binary file per scan, with a .0 extension: RT_01_001.0, RT_01_002.0, and so on for each of the four repeat scans per sample. read_opus_tbl() reads every file in a folder and returns one row per scan, wavenumbers as columns.\n\nspectra &lt;- read_opus_tbl(SPECTRA_DIR)\nspectra\n\n# A tibble: 280 × 1,708\n   spc_id  wn_3997.5 wn_3995.5 wn_3993.4 wn_3991.4 wn_3989.3 wn_3987.3 wn_3985.2\n   &lt;chr&gt;       &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;\n 1 RT_01_…     1.07      1.07      1.07      1.07      1.07      1.07      1.07 \n 2 RT_01_…     1.03      1.03      1.03      1.03      1.03      1.03      1.03 \n 3 RT_01_…     1.00      1.00      1.00      1.00      1.00      1.00      1.00 \n 4 RT_01_…     0.993     0.992     0.992     0.992     0.993     0.993     0.993\n 5 RT_02_…     1.15      1.15      1.15      1.15      1.15      1.15      1.15 \n 6 RT_02_…     1.19      1.19      1.19      1.19      1.19      1.19      1.19 \n 7 RT_02_…     1.17      1.17      1.17      1.17      1.17      1.17      1.17 \n 8 RT_02_…     1.13      1.13      1.13      1.13      1.13      1.13      1.13 \n 9 RT_03_…     1.19      1.19      1.19      1.19      1.19      1.20      1.20 \n10 RT_03_…     1.28      1.28      1.28      1.28      1.28      1.28      1.28 \n# ℹ 270 more rows\n# ℹ 1,700 more variables: wn_3983.2 &lt;dbl&gt;, wn_3981.1 &lt;dbl&gt;, wn_3979.1 &lt;dbl&gt;,\n#   wn_3977.0 &lt;dbl&gt;, wn_3975.0 &lt;dbl&gt;, wn_3972.9 &lt;dbl&gt;, wn_3970.9 &lt;dbl&gt;,\n#   wn_3968.8 &lt;dbl&gt;, wn_3966.8 &lt;dbl&gt;, wn_3964.7 &lt;dbl&gt;, wn_3962.7 &lt;dbl&gt;,\n#   wn_3960.6 &lt;dbl&gt;, wn_3958.6 &lt;dbl&gt;, wn_3956.5 &lt;dbl&gt;, wn_3954.5 &lt;dbl&gt;,\n#   wn_3952.4 &lt;dbl&gt;, wn_3950.3 &lt;dbl&gt;, wn_3948.3 &lt;dbl&gt;, wn_3946.2 &lt;dbl&gt;,\n#   wn_3944.2 &lt;dbl&gt;, wn_3942.1 &lt;dbl&gt;, wn_3940.1 &lt;dbl&gt;, wn_3938.0 &lt;dbl&gt;, …\n\n\n\n\nAveraging replicate scans\nEach sample was scanned four times. read_opus_tbl() keeps every scan as its own row. str_extract() pulls the shared sample ID out of each scan’s filename, for example RT_01 out of RT_01_001. Grouping by that ID and averaging every wavenumber column collapses the four scans into the one row per sample the rest of the pipeline needs.\n\n\n\n\n\n\nNotedplyr, four verbs at a time\n\n\n\nThis chunk is your first look at dplyr, the package tidyverse uses for reshaping tables like this one. mutate() adds a column, group_by() marks rows to summarize together, summarize() collapses each group to one row, and across() applies the same function to several columns at once, here every column starting wn_. These four verbs cover most day-to-day data wrangling in R. The dplyr cheatsheet and the dplyr reference site cover the rest.\n\n\n\nspectra_mean &lt;- spectra |&gt;\n    mutate(smp_id = str_extract(spc_id, \"RT_\\\\d+\")) |&gt;\n    group_by(smp_id) |&gt;\n    summarize(across(starts_with(\"wn_\"), mean))\n\n\n\nLoading soil properties\nThe wet chemistry lives in a plain CSV, one row per sample.\n\nsoil_prop &lt;- read_csv(SOIL_PROP_FILE)\n\nInteractively (e.g. in Positron or RStudio), view(soil_prop) opens the data viewer pane. For a rendered page, printing the tibble works just as well here. It has a manageable number of columns to show inline.\n\nsoil_prop\n\n# A tibble: 70 × 8\n   sample_id source clay_perc pH_H20 carbon_tot_perc carbon_org_perc\n   &lt;chr&gt;     &lt;chr&gt;      &lt;dbl&gt;  &lt;dbl&gt;           &lt;dbl&gt;           &lt;dbl&gt;\n 1 RT_01     KSSL        6.28   4.85           0.612           0.612\n 2 RT_02     KSSL        4.44   4.58           3.49            3.49 \n 3 RT_03     KSSL       42.2    4.23           0.257           0.257\n 4 RT_04     KSSL       17.1    6.53           1.98            1.98 \n 5 RT_05     KSSL       17.2    6.47           2.15            2.14 \n 6 RT_06     KSSL       18.2    6.92           2.05            2.02 \n 7 RT_07     KSSL       17.1    6.59           2.04            2.04 \n 8 RT_08     KSSL       27.5    5.41           0.182           0.182\n 9 RT_09     KSSL       12.9    5.19          16.2            16.2  \n10 RT_10     KSSL       21.9    5.90           1.02            1.02 \n# ℹ 60 more rows\n# ℹ 2 more variables: potassium_cmolkg &lt;dbl&gt;, phosporus_mgkg &lt;dbl&gt;\n\n\n\n\nJoining spectra and soil properties\nThe two tables share sample IDs under different names: smp_id in the averaged spectra, sample_id in the wet chemistry. left_join() takes both names when they don’t match.\n\ndata &lt;- spectra_mean |&gt; \n    left_join(soil_prop, by = c(\"smp_id\" = \"sample_id\"))\n\nTo look at only the non-wavenumber columns:\n\ndata |&gt; \n    select(!starts_with(\"wn_\"))\n\n# A tibble: 70 × 8\n   smp_id source clay_perc pH_H20 carbon_tot_perc carbon_org_perc\n   &lt;chr&gt;  &lt;chr&gt;      &lt;dbl&gt;  &lt;dbl&gt;           &lt;dbl&gt;           &lt;dbl&gt;\n 1 RT_01  KSSL        6.28   4.85           0.612           0.612\n 2 RT_02  KSSL        4.44   4.58           3.49            3.49 \n 3 RT_03  KSSL       42.2    4.23           0.257           0.257\n 4 RT_04  KSSL       17.1    6.53           1.98            1.98 \n 5 RT_05  KSSL       17.2    6.47           2.15            2.14 \n 6 RT_06  KSSL       18.2    6.92           2.05            2.02 \n 7 RT_07  KSSL       17.1    6.59           2.04            2.04 \n 8 RT_08  KSSL       27.5    5.41           0.182           0.182\n 9 RT_09  KSSL       12.9    5.19          16.2            16.2  \n10 RT_10  KSSL       21.9    5.90           1.02            1.02 \n# ℹ 60 more rows\n# ℹ 2 more variables: potassium_cmolkg &lt;dbl&gt;, phosporus_mgkg &lt;dbl&gt;\n\n\n\n\n\n\n\n\nNoteA skewed column\n\n\n\npotassium_cmolkg above is right-skewed. 58 of the 69 measured samples sit under 1 cmol(+)/kg. One reaches 2.8. 3-eda.qmd comes back to this, with the plots to show it and the reasons it matters for modelling.",
+    "crumbs": [
+      "Loading spectral data"
+    ]
+  },
+  {
+    "objectID": "2-loading-data.html#digging-further",
+    "href": "2-loading-data.html#digging-further",
+    "title": "Loading spectral data",
+    "section": "Digging further",
+    "text": "Digging further\nprepare_rt() in R/prepare_data.R is exactly the four chunks above, chained. To see how read_opus_tbl() itself gets from a folder of .0 files to a tibble, open R/io.R and step through it in the R console: build a small path, run read_opus(dsn = path) from opusreader2 on its own, inspect what comes back, then run each following line by hand. These scripts aren’t a package. ?read_opus_tbl won’t find a help page. The roxygen comment above each function is written in the same format a package help page would show, and reads the same way top to bottom.",
+    "crumbs": [
+      "Loading spectral data"
+    ]
+  },
+  {
+    "objectID": "4-feature-engineering.html",
+    "href": "4-feature-engineering.html",
+    "title": "Features engineering",
+    "section": "",
+    "text": "library(here)\nlibrary(tidyverse)\nlibrary(tidymodels)\nlibrary(skimr)\nsource(here(\"R\", \"prepare_data.R\"))\nsource(here(\"R\", \"steps.R\"))\nsource(here(\"R\", \"plots.R\"))\ntheme_set(theme_bw())\ntidymodels_prefer()\nSPECTRA_DIR = here(\"data/RT_spectra\")\nSOIL_PROP_FILE = here(\"data/RT_wetchem_soildata.csv\")\nTARGET &lt;- \"potassium_cmolkg\"\n\n# --- Preprocessing ----------------------------------------------------------\nRESAMPLE_BY &lt;- 5L\nRESAMPLING_GRID &lt;- seq(3995, 600, by = -5)\nSG_W        &lt;- 15L\nSG_P        &lt;- 3L\nSG_M        &lt;- 1L",
+    "crumbs": [
+      "Features engineering"
+    ]
+  },
+  {
+    "objectID": "4-feature-engineering.html#getting-data",
+    "href": "4-feature-engineering.html#getting-data",
+    "title": "Features engineering",
+    "section": "Getting data",
+    "text": "Getting data\n\ndata &lt;- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)",
+    "crumbs": [
+      "Features engineering"
+    ]
+  },
+  {
+    "objectID": "4-feature-engineering.html#recipes",
+    "href": "4-feature-engineering.html#recipes",
+    "title": "Features engineering",
+    "section": "Recipes",
+    "text": "Recipes\n1-full-pipeline.qmd already built and used a recipe once, without explaining it. This page is that explanation. A recipe in tidymodels is a specification of preprocessing steps, written once and reused everywhere a model needs data in the same shape. The recipes package and the tidymodels recipes guide cover the general vocabulary this page assumes, alongside the Posit cheatsheets already pointed to from the course homepage.\nBase recipes ships steps for the usual tabular preprocessing, centring, scaling, dummy variables, but nothing for a spectrum. step_snv(), step_sg(), and step_resample(), defined in R/steps.R, close that gap.\nEach one wraps a prospectr or resemble function, prospectr::standardNormalVariate(), prospectr::savitzkyGolay(), prospectr::resample(), inside the contract a recipes step needs: a constructor, prep(), bake(), print(), tidy(). That’s what lets step_snv() sit in a recipe next to step_log() or any other tidymodels step. It gets ordered, tuned, and applied the same way every other step does.\n\nDefining roles\nEvery column in data gets a role before any preprocessing happens: potassium_cmolkg as the outcome, the wn_* columns as predictors, everything else, sample_id, source, the other soil properties, as metadata. Metadata columns ride along through the whole recipe unchanged. They’re not used to fit anything, but having them still attached to data_processed later makes it possible to check whether prediction errors line up with, say, clay content or sample source, without a separate join back to the original data.\n\nspc_cols &lt;- names(data)[startsWith(names(data), \"wn_\")]\nmeta_cols &lt;- setdiff(names(data), c(TARGET, spc_cols))\n\nrec &lt;- recipe(data) |&gt;\n  update_role(all_of(TARGET),  new_role = \"outcome\") |&gt;\n  update_role(all_of(spc_cols), new_role = \"predictor\") |&gt;\n  update_role(all_of(meta_cols), new_role = \"metadata\")\n\n\nsummary(rec)\n\n# A tibble: 1,715 × 4\n   variable  type      role      source  \n   &lt;chr&gt;     &lt;list&gt;    &lt;chr&gt;     &lt;chr&gt;   \n 1 smp_id    &lt;chr [3]&gt; metadata  original\n 2 wn_3997.5 &lt;chr [2]&gt; predictor original\n 3 wn_3995.5 &lt;chr [2]&gt; predictor original\n 4 wn_3993.4 &lt;chr [2]&gt; predictor original\n 5 wn_3991.4 &lt;chr [2]&gt; predictor original\n 6 wn_3989.3 &lt;chr [2]&gt; predictor original\n 7 wn_3987.3 &lt;chr [2]&gt; predictor original\n 8 wn_3985.2 &lt;chr [2]&gt; predictor original\n 9 wn_3983.2 &lt;chr [2]&gt; predictor original\n10 wn_3981.1 &lt;chr [2]&gt; predictor original\n# ℹ 1,705 more rows\n\n\n\n\nAll steps together\nThis shows the full preprocessing chain at once: log-scaling the outcome, resampling the spectral grid, SNV, then Savitzky-Golay. The rest of this page unpacks these steps one by one, adding one more each time.\n\nrec_all &lt;- recipe(data) |&gt;\n  update_role(all_of(TARGET),  new_role = \"outcome\") |&gt;\n  update_role(all_of(spc_cols), new_role = \"predictor\") |&gt;\n  update_role(all_of(meta_cols), new_role = \"metadata\") |&gt; \n  step_log(all_outcomes(), base = 10) |&gt;\n  step_resample(grid = RESAMPLING_GRID) |&gt; \n  step_snv() |&gt; \n  step_sg(w = SG_W, p = SG_P, m = SG_M)\n\n\nrec_prep &lt;- prep(rec_all, training = data, verbose = TRUE)\n\noper 1 step log [training] \noper 2 step resample [training] \noper 3 step snv [training] \noper 4 step sg [training] \nThe retained training set is ~ 0.44 Mb  in memory.\n\ndata_processed &lt;- bake(\n  rec_prep,\n  new_data = NULL\n)\n\n\ndata_processed |&gt; plot_spectra()",
+    "crumbs": [
+      "Features engineering"
+    ]
+  },
+  {
+    "objectID": "4-feature-engineering.html#unpacking-the-recipe",
+    "href": "4-feature-engineering.html#unpacking-the-recipe",
+    "title": "Features engineering",
+    "section": "Unpacking the recipe",
+    "text": "Unpacking the recipe\nThe rest of this page adds one step at a time to rec. Each one’s effect on the spectra is visible on its own this way. Every version gets prep()ped then bake()d before plotting.\nprep() is where a step learns anything it needs from the training data, a column’s mean and standard deviation for centring and scaling, say. bake() is where that learned information gets applied: to the training data here, to a validation or test set later, using the exact same numbers either time.\nNone of the three steps below actually estimate anything from the training set as a whole. SNV and Savitzky-Golay both act one row at a time, using only that row’s own values. Resampling only depends on the wavenumber grid, not on any sample’s measurements. prep() still runs before each one, mostly resolving which columns it applies to. The training/test separation it exists for matters most once a step needs to remember something computed across rows, a column mean for centring, say, rather than something computed within each row.\n\nResampling\nThis step does two things. step_log(all_outcomes(), base = 10) log-scales the outcome, the fix for potassium_cmolkg’s skew discussed back in 2-loading-data.qmd and 3-eda.qmd. step_resample() interpolates every spectrum onto RESAMPLING_GRID, an evenly spaced set of wavenumbers 5 cm⁻¹ apart, versus the roughly 2 cm⁻¹ spacing read_opus_tbl() returns. That cuts the predictor count from 1707 columns to 680. It also guarantees every sample lands on the same wavenumber axis, even where the source instrument didn’t.\n\nrec_res &lt;- rec |&gt;\n  step_log(all_outcomes(), base = 10) |&gt;\n  step_resample(grid = RESAMPLING_GRID)\n\n\nrec_prep &lt;- prep(rec_res, training = data, verbose = TRUE)\n\noper 1 step log [training] \noper 2 step resample [training] \nThe retained training set is ~ 0.45 Mb  in memory.\n\ndata_processed &lt;- bake(\n  rec_prep,\n  new_data = NULL\n)\n\n\ndata_processed |&gt; plot_spectra()\n\n\n\n\n\n\n\n\n\n\nSNV\nstep_snv() centres and scales each spectrum by its own mean and standard deviation, row by row, not column by column. That corrects for scatter effects, differences in particle size or packing that shift a whole spectrum up or down without changing its shape. Two spectra with the same underlying chemistry but different scatter come out looking the same after SNV. Two spectra with genuinely different chemistry stay different.\n\nrec_snv &lt;- rec |&gt;\n  step_log(all_outcomes(), base = 10) |&gt;\n  step_resample(grid = RESAMPLING_GRID) |&gt;\n  step_snv()\n\n\nrec_prep &lt;- prep(rec_snv, training = data, verbose = TRUE)\n\noper 1 step log [training] \noper 2 step resample [training] \noper 3 step snv [training] \nThe retained training set is ~ 0.45 Mb  in memory.\n\ndata_processed &lt;- bake(\n  rec_prep,\n  new_data = NULL\n)\n\n\ndata_processed |&gt; plot_spectra()\n\n\n\n\n\n\n\n\n\n\nSavitzky-Golay\nstep_sg() fits a polynomial of order SG_P inside a moving window SG_W wavenumbers wide, centred on each point. It then reads off either a smoothed value or a derivative from that fit, depending on SG_M. With SG_M = 1 here, each spectrum gets its first derivative instead of a smoothed value. A first derivative removes baseline shifts entirely, rather than just correcting for them the way SNV does. It also tends to sharpen overlapping peaks.\nSmoothing and differentiating both cost some data at the edges. prospectr::savitzkyGolay() trims (w - 1) / 2 wavenumbers off each end. That’s why the plotted spectrum below is narrower than the one above it.\nSG_W = 15, SG_P = 3, and SG_M = 1 are sensible defaults here, tuned by eye on a dataset rather than picked arbitrarily. Tuning them properly, as part of a model fit, comes later in this course.\n\nrec_sg &lt;- rec |&gt;\n  step_log(all_outcomes(), base = 10) |&gt;\n  step_resample(grid = RESAMPLING_GRID) |&gt; \n  step_snv() |&gt; \n  step_sg(w = SG_W, p = SG_P, m = SG_M)\n\n\nrec_prep &lt;- prep(rec_sg, training = data, verbose = TRUE)\n\noper 1 step log [training] \noper 2 step resample [training] \noper 3 step snv [training] \noper 4 step sg [training] \nThe retained training set is ~ 0.44 Mb  in memory.\n\ndata_processed &lt;- bake(\n  rec_prep,\n  new_data = NULL\n)\n\n\ndata_processed |&gt; plot_spectra()",
+    "crumbs": [
+      "Features engineering"
+    ]
+  },
+  {
+    "objectID": "6-evaluating-performance.html",
+    "href": "6-evaluating-performance.html",
+    "title": "Evaluating performance",
+    "section": "",
+    "text": "1-full-pipeline.qmd already tuned this same model on this same data. It picked a number of components with select_best(). This page runs the same tuning in more depth: the CV curve behind that choice, and select_by_one_std_err() as a simpler alternative to picking the single best value.\nlibrary(here)\nlibrary(tidyverse)\nlibrary(tidymodels)\nlibrary(skimr)\nlibrary(plsmod)\nsource(here(\"R\", \"prepare_data.R\"))\nsource(here(\"R\", \"steps.R\"))\nsource(here(\"R\", \"split.R\"))\ntheme_set(theme_bw())\ntidymodels_prefer()\nSPECTRA_DIR = here(\"data/RT_spectra\")\nSOIL_PROP_FILE = here(\"data/RT_wetchem_soildata.csv\")\nTARGET &lt;- \"carbon_tot_perc\"\n\n# --- Preprocessing ----------------------------------------------------------\nRESAMPLE_BY &lt;- 5L\nRESAMPLING_GRID &lt;- seq(3995, 600, by = -5)\nSG_W        &lt;- 15L   \nSG_P        &lt;- 3L    \nSG_M        &lt;- 1L",
+    "crumbs": [
+      "Evaluating performance"
+    ]
+  },
+  {
+    "objectID": "6-evaluating-performance.html#getting-data",
+    "href": "6-evaluating-performance.html#getting-data",
+    "title": "Evaluating performance",
+    "section": "Getting data",
+    "text": "Getting data\n\ndata &lt;- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)|&gt; filter(smp_id != \"RT_44\")\n\n\nsplit &lt;- kennard_stone_split(data, prop = 50/70, cols = starts_with(\"wn_\"))\n\n# or\n# split &lt;- initial_split(data, prop = 50/70)\n\n\nset.seed(123)\n\nfolds &lt;- vfold_cv(\n  training(split),\n  v = 10,\n  repeats = 10,\n  strata = TARGET,\n  breaks = 2\n)\n\n\nspc_cols &lt;- names(data)[startsWith(names(data), \"wn_\")]\nmeta_cols &lt;- setdiff(names(data), c(TARGET, spc_cols))\n\nrec &lt;- recipe(data) |&gt;\n  update_role(all_of(TARGET),  new_role = \"outcome\") |&gt;\n  update_role(all_of(spc_cols), new_role = \"predictor\") |&gt;\n  update_role(all_of(meta_cols), new_role = \"metadata\") |&gt; \n  step_log(all_outcomes(), base = 10) |&gt;\n  step_resample(grid = RESAMPLING_GRID) |&gt; \n  step_snv() |&gt; \n  step_sg(w = SG_W, p = SG_P, m = SG_M)\n\n\npls_spec &lt;- pls(num_comp = tune()) |&gt;\n  set_engine(\"mixOmics\") |&gt;\n  set_mode(\"regression\")\n\n\nwf &lt;- workflow() |&gt;\n  add_recipe(rec) |&gt;\n  add_model(pls_spec)\n\n\nnum_comp_grid &lt;- tibble(num_comp = 2:20)\n\n\ntune_res &lt;- tune_grid(\n  wf,\n  resamples = folds,\n  grid = num_comp_grid\n)\n\n\ncollect_metrics(tune_res)\n\n# A tibble: 38 × 7\n   num_comp .metric .estimator  mean     n std_err .config         \n      &lt;int&gt; &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;           \n 1        2 rmse    standard   0.192   100 0.00559 pre0_mod01_post0\n 2        2 rsq     standard   0.861   100 0.0134  pre0_mod01_post0\n 3        3 rmse    standard   0.174   100 0.00471 pre0_mod02_post0\n 4        3 rsq     standard   0.898   100 0.00926 pre0_mod02_post0\n 5        4 rmse    standard   0.163   100 0.00512 pre0_mod03_post0\n 6        4 rsq     standard   0.905   100 0.00781 pre0_mod03_post0\n 7        5 rmse    standard   0.155   100 0.00573 pre0_mod04_post0\n 8        5 rsq     standard   0.918   100 0.00743 pre0_mod04_post0\n 9        6 rmse    standard   0.142   100 0.00528 pre0_mod05_post0\n10        6 rsq     standard   0.927   100 0.00724 pre0_mod05_post0\n# ℹ 28 more rows\n\n\n\nautoplot(tune_res)\n\n\n\n\n\n\n\n\n\ncollect_metrics(tune_res) |&gt;\n  ggplot(aes(x = num_comp, y = mean)) +\n  geom_line() +\n  geom_errorbar(aes(ymin = mean - std_err, ymax = mean + std_err), width = 0.1, color = \"grey20\", linetype = \"22\") +\n  geom_point(size=1.5) +\n  facet_wrap(~ .metric, scales = \"free_y\") +\n  labs(x = \"Number of PLS components\", y = NULL,\n       title = \"CV performance vs number of PLS components\") +\n  theme_minimal()\n\n\n\n\n\n\n\n\n\nbest_rmse &lt;- select_best(tune_res, metric = \"rmse\")\nbest_rmse\n\n# A tibble: 1 × 2\n  num_comp .config         \n     &lt;int&gt; &lt;chr&gt;           \n1        7 pre0_mod06_post0\n\n\n\nbest_1se &lt;- select_by_one_std_err(tune_res, metric = \"rmse\", num_comp)\nbest_1se\n\n# A tibble: 1 × 2\n  num_comp .config         \n     &lt;int&gt; &lt;chr&gt;           \n1        7 pre0_mod06_post0\n\n\n\nfinal_wf &lt;- wf |&gt; finalize_workflow(best_1se)\n\n# or manually\n# final_wf &lt;- wf |&gt; finalize_workflow(tibble(num_comp = 10))\n\n\nfinal_res &lt;- final_wf |&gt; last_fit(split)\n\n\ncollect_metrics(final_res)\n\n# A tibble: 2 × 4\n  .metric .estimator .estimate .config        \n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;          \n1 rmse    standard       0.131 pre0_mod0_post0\n2 rsq     standard       0.933 pre0_mod0_post0\n\n\n\ncollect_predictions(final_res)\n\n# A tibble: 20 × 5\n      .pred id               carbon_tot_perc  .row .config        \n      &lt;dbl&gt; &lt;chr&gt;                      &lt;dbl&gt; &lt;int&gt; &lt;chr&gt;          \n 1  0.322   train/test split          0.296      4 pre0_mod0_post0\n 2  0.306   train/test split          0.332      5 pre0_mod0_post0\n 3  0.320   train/test split          0.311      6 pre0_mod0_post0\n 4  0.308   train/test split          0.318     13 pre0_mod0_post0\n 5  0.254   train/test split          0.258     17 pre0_mod0_post0\n 6  0.00379 train/test split          0.0192    18 pre0_mod0_post0\n 7 -0.451   train/test split         -0.596     26 pre0_mod0_post0\n 8  0.00132 train/test split          0.0269    30 pre0_mod0_post0\n 9 -0.0110  train/test split          0.0469    31 pre0_mod0_post0\n10 -0.318   train/test split         -0.551     32 pre0_mod0_post0\n11 -0.0443  train/test split          0.0293    36 pre0_mod0_post0\n12 -0.441   train/test split         -0.613     38 pre0_mod0_post0\n13 -0.267   train/test split         -0.569     44 pre0_mod0_post0\n14 -0.292   train/test split         -0.595     46 pre0_mod0_post0\n15  0.624   train/test split          0.519     49 pre0_mod0_post0\n16  0.601   train/test split          0.464     50 pre0_mod0_post0\n17  0.220   train/test split          0.280     51 pre0_mod0_post0\n18 -0.158   train/test split         -0.240     54 pre0_mod0_post0\n19  0.445   train/test split          0.469     57 pre0_mod0_post0\n20  0.216   train/test split          0.283     58 pre0_mod0_post0\n\n\n\ncollect_predictions(final_res) |&gt;\n  ggplot(aes(x = .data[[TARGET]], y = .pred)) +\n  geom_abline(lty = 2) +\n  geom_point(alpha = 0.5) +\n  labs(x = \"Observed carbon_tot_perc (%)\", y = \"carbon_tot_perc (%)\") +\n  coord_obs_pred()",
+    "crumbs": [
+      "Evaluating performance"
+    ]
+  },
+  {
+    "objectID": "8-kex-ossl-pipeline.html",
+    "href": "8-kex-ossl-pipeline.html",
+    "title": "Predicting Exchangeable Potassium using OSSL",
+    "section": "",
+    "text": "library(here)\nlibrary(tidyverse)\nlibrary(tidymodels)\nlibrary(skimr)\nlibrary(plsmod)\nlibrary(hexbin)\nsource(here(\"R\", \"prepare_data.R\"))\nsource(here(\"R\", \"steps.R\"))\nsource(here(\"R\", \"split.R\"))\ntheme_set(theme_bw())\ntidymodels_prefer()\nSRC_FILE = here(\"data/ossl_mir_k_sample.rds\")\nTARGET &lt;- \"kex\"\n\n# --- Preprocessing ----------------------------------------------------------\nRESAMPLE_BY &lt;- 5L\nRESAMPLING_GRID &lt;- seq(4000, 600, by = -5)\nSG_W        &lt;- 15L   \nSG_P        &lt;- 3L    \nSG_M        &lt;- 1L",
+    "crumbs": [
+      "Predicting Exchangeable Potassium using OSSL"
+    ]
+  },
+  {
+    "objectID": "8-kex-ossl-pipeline.html#getting-data",
+    "href": "8-kex-ossl-pipeline.html#getting-data",
+    "title": "Predicting Exchangeable Potassium using OSSL",
+    "section": "Getting data",
+    "text": "Getting data\n\ndata &lt;- read_rds(SRC_FILE)\n\nLet’s check the range of wavenumbers:\n\ndata |&gt; \n  select(starts_with(\"wn\")) |&gt; \n  names() |&gt; \n  parse_number() |&gt; \n  range()\n\n[1]  600 4000\n\n\n\nsplit &lt;- initial_validation_split(data, prop=c(0.7, 0.2))\n# split &lt;- initial_split(data, prop = 0.8)\n\n\n# set.seed(123)\n\n# folds &lt;- vfold_cv(\n#   training(split),\n#   v = 5,\n#   repeats = 1,\n#   strata = TARGET,\n#   breaks = 2\n# )\n\n\nspc_cols &lt;- names(data)[startsWith(names(data), \"wn_\")]\nmeta_cols &lt;- setdiff(names(data), c(TARGET, spc_cols))\n\nrec &lt;- recipe(data) |&gt;\n  update_role(all_of(TARGET),  new_role = \"outcome\") |&gt;\n  update_role(all_of(spc_cols), new_role = \"predictor\") |&gt;\n  update_role(all_of(meta_cols), new_role = \"metadata\") |&gt; \n  step_log(all_outcomes(), base = 10) |&gt;\n  # step_resample(grid = RESAMPLING_GRID) |&gt; \n  step_snv() |&gt; \n  step_sg(w = SG_W, p = SG_P, m = SG_M)\n\n\npls_spec &lt;- pls(num_comp = tune()) |&gt;\n  set_engine(\"mixOmics\") |&gt;\n  set_mode(\"regression\")\n\n\nwf &lt;- workflow() |&gt;\n  add_recipe(rec) |&gt;\n  add_model(pls_spec)\n\n\nnum_comp_grid &lt;- tibble(num_comp = seq(5, 50, 5))\n\n\ntune_res &lt;- tune_grid(\n  wf,\n  resamples = validation_set(split),\n  # resamples = folds,\n  grid = num_comp_grid\n)\n\n\nautoplot(tune_res)\n\n\n\n\n\n\n\n\n\n# collect_metrics(tune_res) |&gt;\n#   ggplot(aes(x = num_comp, y = mean)) +\n#   geom_line() +\n#   geom_errorbar(aes(ymin = mean - std_err, ymax = mean + std_err), width = 0.1, color = \"grey20\", linetype = \"22\") +\n#   geom_point(size=1.5) +\n#   facet_wrap(~ .metric, scales = \"free_y\") +\n#   labs(x = \"Number of PLS components\", y = NULL,\n#        title = \"CV performance vs number of PLS components\") +\n#   theme_minimal()\n\n\nbest_rmse &lt;- select_best(tune_res, metric = \"rmse\")\nbest_rmse\n\n# A tibble: 1 × 2\n  num_comp .config         \n     &lt;dbl&gt; &lt;chr&gt;           \n1       25 pre0_mod05_post0\n\n\n\n# best_1se &lt;- select_by_one_std_err(tune_res, metric = \"rmse\", num_comp)\n# best_1se\n\n\nfinal_wf &lt;- wf |&gt; finalize_workflow(best_rmse)\n# final_wf &lt;- wf |&gt; finalize_workflow(best_1se)\n\n# or manually\n# final_wf &lt;- wf |&gt; finalize_workflow(tibble(num_comp = 10))\n\n\nfinal_res &lt;- final_wf |&gt; last_fit(split)\n\n\ncollect_metrics(final_res)\n\n# A tibble: 2 × 4\n  .metric .estimator .estimate .config        \n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;          \n1 rmse    standard       0.287 pre0_mod0_post0\n2 rsq     standard       0.510 pre0_mod0_post0\n\n\n\ncollect_predictions(final_res)\n\n# A tibble: 455 × 5\n     .pred id                   kex  .row .config        \n     &lt;dbl&gt; &lt;chr&gt;              &lt;dbl&gt; &lt;int&gt; &lt;chr&gt;          \n 1  0.125  train/test split -0.238      4 pre0_mod0_post0\n 2 -0.182  train/test split  0.136      9 pre0_mod0_post0\n 3  0.0305 train/test split -0.0262    14 pre0_mod0_post0\n 4 -0.650  train/test split -0.453     17 pre0_mod0_post0\n 5 -0.452  train/test split -0.416     40 pre0_mod0_post0\n 6 -0.124  train/test split -0.0535    46 pre0_mod0_post0\n 7 -0.885  train/test split -0.523     86 pre0_mod0_post0\n 8 -0.0435 train/test split  0.146     88 pre0_mod0_post0\n 9 -0.311  train/test split -0.558    115 pre0_mod0_post0\n10 -0.569  train/test split -0.911    140 pre0_mod0_post0\n# ℹ 445 more rows\n\n\n\ncollect_predictions(final_res) |&gt;\n  ggplot(aes(x = .data[[TARGET]], y = .pred)) +\n  geom_abline(lty = 2) +\n  geom_hex(bins=40) +\n  scale_fill_viridis_c(trans = \"log10\") +\n  geom_abline(lty = 2) +\n  labs(x = \"Observed Kex (cmol+/kg)\", y = \"Predicted Kex (cmol+/kg)\") +\n  coord_obs_pred()",
+    "crumbs": [
+      "Predicting Exchangeable Potassium using OSSL"
+    ]
+  },
+  {
+    "objectID": "8-kex-ossl-pipeline.html#cubist",
+    "href": "8-kex-ossl-pipeline.html#cubist",
+    "title": "Predicting Exchangeable Potassium using OSSL",
+    "section": "Cubist",
+    "text": "Cubist",
+    "crumbs": [
+      "Predicting Exchangeable Potassium using OSSL"
+    ]
+  }
+]
