@@ -112,6 +112,8 @@ soil_long <- data |>
 
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 5
 soil_long |> 
   filter(soil_prop != "pH_H20") |>
   ggplot(aes(x = value)) +
@@ -125,6 +127,8 @@ soil_long |>
 A QQ plot checks a variable against a normal distribution. Points that follow the diagonal line come from something close to normal. Points that curve away from it don't.
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 5
 soil_long |> 
   ggplot(aes(sample = value)) +
   stat_qq(na.rm = TRUE) +
@@ -136,6 +140,8 @@ soil_long |>
 
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 5
 soil_long |> 
   filter(value > 0) |>
   mutate(log_value = log(value)) |>
@@ -181,7 +187,7 @@ data |>
 
 ```{r}
 #| fig-width: 9
-#| fig-height: 5
+#| fig-height: 3
 data |> plot_spectra()
 ```
 
@@ -202,7 +208,7 @@ spectra <- data |>
 
 ```{r}
 #| fig-width: 9
-#| fig-height: 5
+#| fig-height: 6
 ggplot(spectra, aes(wavenumber, absorbance, group = smp_id, colour = smp_id)) +
   geom_line() +
   scale_x_reverse() +
@@ -211,14 +217,16 @@ ggplot(spectra, aes(wavenumber, absorbance, group = smp_id, colour = smp_id)) +
     y = "Absorbance",
     colour = "Sample"
   ) +
-  theme_bw()
+  theme_bw() +
+  guides(colour = guide_legend(nrow = 5, byrow = TRUE)) +
+  theme(legend.position = "bottom")
 ```
 
 Dropping the per-sample colour and blending lines with `alpha` instead makes the overall shape visible:
 
 ```{r}
 #| fig-width: 9
-#| fig-height: 5
+#| fig-height: 3
 ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
   geom_line(alpha = 0.35, colour = "steelblue") +
   scale_x_reverse() +
@@ -229,7 +237,7 @@ Tidying the axis breaks and labels gets to what `plot_spectra()` actually return
 
 ```{r}
 #| fig-width: 9
-#| fig-height: 5
+#| fig-height: 3
 ggplot(spectra, aes(wavenumber, absorbance, group = smp_id)) +
     geom_line(alpha = 0.35, colour = "steelblue") +
     scale_x_reverse(
@@ -248,7 +256,7 @@ Mean absorbance across the whole spectrum correlates weakly with organic carbon:
 
 ```{r}
 #| fig-width: 9
-#| fig-height: 5
+#| fig-height: 4
 ggplot(
   spectra,
   aes(
@@ -270,7 +278,9 @@ ggplot(
   labs(
     x = "Wavenumber (cm⁻¹)",
     y = "Absorbance"
-  )
+  ) +
+  # theme_bw() +
+  theme(legend.position = "bottom")
 ```
 
 ### Grouping by carbon quartile
@@ -291,7 +301,7 @@ spectra_grouped <- spectra |>
 
 ```{r}
 #| fig-width: 9
-#| fig-height: 5
+#| fig-height: 3
 ggplot(
   spectra_grouped,
   aes(wavenumber, absorbance, group = smp_id)
@@ -317,7 +327,7 @@ spectra_no_na <- spectra |>
 
 ```{r}
 #| fig-width: 9
-#| fig-height: 5
+#| fig-height: 4
 ggplot(
   spectra_no_na,
   aes(wavenumber, absorbance, group = smp_id)
@@ -336,7 +346,7 @@ ggplot(
 
 ```{r}
 #| fig-width: 9
-#| fig-height: 5
+#| fig-height: 4
 ggplot(
   spectra_no_na,
   aes(wavenumber, absorbance, group = smp_id)
