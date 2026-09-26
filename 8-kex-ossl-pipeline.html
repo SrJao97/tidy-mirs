@@ -76,10 +76,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-a9c94084e156453ce75ecc8ff7b2041c.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-8518db5608d7c9396dcaa1d71a1c4114.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-f9d7f45405ba9184d9c115d708520f30.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -107,6 +107,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&amp;family=Source+Code+Pro&amp;display=swap" rel="stylesheet">
 
 
 </head>
@@ -135,7 +138,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="./">Soil MIR Spectroscopy</a> 
+      <a href="./">SOIl MIR SPECTROSCOPY</a> 
     </div>
       </div>
         <div class="mt-2 flex-shrink-0 align-items-center">
@@ -374,7 +377,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code># A tibble: 1 × 2
   num_comp .config         
      &lt;dbl&gt; &lt;chr&gt;           
-1       25 pre0_mod05_post0</code></pre>
+1       45 pre0_mod09_post0</code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
@@ -397,26 +400,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code># A tibble: 2 × 4
   .metric .estimator .estimate .config        
   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;          
-1 rmse    standard       0.287 pre0_mod0_post0
-2 rsq     standard       0.510 pre0_mod0_post0</code></pre>
+1 rmse    standard       0.249 pre0_mod0_post0
+2 rsq     standard       0.603 pre0_mod0_post0</code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_predictions</span>(final_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 455 × 5
-     .pred id                   kex  .row .config        
-     &lt;dbl&gt; &lt;chr&gt;              &lt;dbl&gt; &lt;int&gt; &lt;chr&gt;          
- 1  0.125  train/test split -0.238      4 pre0_mod0_post0
- 2 -0.182  train/test split  0.136      9 pre0_mod0_post0
- 3  0.0305 train/test split -0.0262    14 pre0_mod0_post0
- 4 -0.650  train/test split -0.453     17 pre0_mod0_post0
- 5 -0.452  train/test split -0.416     40 pre0_mod0_post0
- 6 -0.124  train/test split -0.0535    46 pre0_mod0_post0
- 7 -0.885  train/test split -0.523     86 pre0_mod0_post0
- 8 -0.0435 train/test split  0.146     88 pre0_mod0_post0
- 9 -0.311  train/test split -0.558    115 pre0_mod0_post0
-10 -0.569  train/test split -0.911    140 pre0_mod0_post0
+      .pred id                   kex  .row .config        
+      &lt;dbl&gt; &lt;chr&gt;              &lt;dbl&gt; &lt;int&gt; &lt;chr&gt;          
+ 1 -0.00770 train/test split -0.0262    15 pre0_mod0_post0
+ 2 -0.206   train/test split -0.389     25 pre0_mod0_post0
+ 3 -0.532   train/test split -0.306     26 pre0_mod0_post0
+ 4 -0.155   train/test split -0.239     27 pre0_mod0_post0
+ 5 -0.845   train/test split -0.625     34 pre0_mod0_post0
+ 6  0.0229  train/test split -0.496     45 pre0_mod0_post0
+ 7 -0.165   train/test split -0.0535    47 pre0_mod0_post0
+ 8 -0.247   train/test split -0.0467    48 pre0_mod0_post0
+ 9 -0.553   train/test split -0.381     53 pre0_mod0_post0
+10 -0.387   train/test split -0.352     59 pre0_mod0_post0
 # ℹ 445 more rows</code></pre>
 </div>
 </div>
