@@ -25,6 +25,22 @@ Both Positron and RStudio are built by Posit, but only Positron keeps getting ne
 
 Once Positron is installed, open it and check it has found your R installation: bottom status bar -> interpreter picker, or `Cmd/Ctrl+Shift+P` -> "R: Select Interpreter".
 
+## Positron keyboard shortcuts
+
+A handful of shortcuts cover most of what you'll do in Positron day to day.
+
+| Action | Mac | Windows |
+|---|---|---|
+| Open the Command Palette | `Cmd+Shift+P` | `Ctrl+Shift+P` |
+| Toggle the file explorer (left panel) | `Cmd+B` | `Ctrl+B` |
+| Toggle the Plots/Variables panel (right panel) | `Cmd+Option+B` | `Ctrl+Alt+B` |
+| Insert a new code cell | `Cmd+Shift+I` | `Ctrl+Shift+I` |
+| Run the current cell and move to the next | `Shift+Enter` | `Shift+Enter` |
+| Run the current line | `Cmd+Enter` | `Ctrl+Enter` |
+| Toggle the terminal panel | `` Cmd+` `` | `` Ctrl+` `` |
+
+The Command Palette is where to find commands with no dedicated shortcut worth memorizing, like "Quarto: Run All Cells" or "Quarto: Run Cells Above": open it, then type the command name.
+
 ## Get the course materials
 
 Go to the [course repository](https://github.com/franckalbinet/tidy-mirs) on GitHub, click **Code** -> **Download ZIP**, then unzip it. Open the unzipped folder in Positron (`File` -> `Open Folder…`).

@@ -301,7 +301,7 @@ spectra_grouped <- spectra |>
 
 ```{r}
 #| fig-width: 9
-#| fig-height: 3
+#| fig-height: 4
 ggplot(
   spectra_grouped,
   aes(wavenumber, absorbance, group = smp_id)
@@ -327,7 +327,7 @@ spectra_no_na <- spectra |>
 
 ```{r}
 #| fig-width: 9
-#| fig-height: 4
+#| fig-height: 3
 ggplot(
   spectra_no_na,
   aes(wavenumber, absorbance, group = smp_id)
@@ -340,13 +340,12 @@ ggplot(
   labs(
     x = "Wavenumber (cm⁻¹)",
     y = "Absorbance"
-  ) +
-  theme_bw()
+  )
 ```
 
 ```{r}
 #| fig-width: 9
-#| fig-height: 4
+#| fig-height: 3
 ggplot(
   spectra_no_na,
   aes(wavenumber, absorbance, group = smp_id)
@@ -360,7 +359,6 @@ ggplot(
   labs(
     x = "Wavenumber (cm⁻¹)",
     y = "Absorbance"
-  ) +
-  theme_bw()
+  )
 ```
 

@@ -1,0 +1,19 @@
+/*-- scss:defaults --*/
+$font-family-sans-serif: "Lato", sans-serif;
+$font-family-monospace: "Source Code Pro", monospace;
+$primary: #CA225E;
+$link-color: #CA225E;
+
+/*-- scss:rules --*/
+h1 {
+  color: #CA225E;
+}
+
+.sidebar-title {
+  color: #CA225E;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
