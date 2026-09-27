@@ -18,32 +18,98 @@ library(here)
 library(tidyverse)
 ```
 
-OSSL reference: https://docs.soilspectroscopy.org/
+## The Open Soil Spectral Library
+
+The RT dataset used so far has 70 samples. That is enough to learn the workflow, but not enough to build a model that works on soils from other places. The [Open Soil Spectral Library (OSSL)](https://docs.soilspectroscopy.org/) is a much larger, public alternative.
+
+OSSL is compiled by the [Soil Spectroscopy for Global Good](https://soilspectroscopy.org/) initiative. It brings together soil spectral libraries from many sources, including the USDA NRCS Kellogg Soil Survey Laboratory (KSSL), ICRAF-ISRIC, the Africa Soil Information Service (AfSIS) and LUCAS. It holds more than 135,000 entries, with MIR, VisNIR and NIR spectra and the matching wet chemistry. Each source used its own column names and units. OSSL maps them all onto one naming scheme, so the whole library can be used as one table. [Safanelli et al. (2025)](https://doi.org/10.1371/journal.pone.0296545) describe how it was built.
+
+### How OSSL is distributed
+
+OSSL is distributed as static files in a public Google Cloud Storage bucket. The [database access page](https://docs.soilspectroscopy.org/db-access.html) lists them. There is one file for the whole library, or separate files for site data, lab data, MIR spectra and VisNIR spectra. Each comes as compressed CSV (`.csv.gz`) or as a `qs` file for R. The static files can only be downloaded whole. An experimental API allows filtered queries.
+
+Each file comes at two levels:
+
+- **Level 0 (L0)** keeps each property as measured by its original analytical method.
+- **Level 1 (L1)** converts properties measured with different methods to a common reference method, using published transformation rules.
+
+This page uses L0, so every Kex value below comes from the same laboratory method.
+
+### Column names
+
+Every column name follows the pattern `concept.method_unit_datatype`, described on the [database description page](https://docs.soilspectroscopy.org/db-desc.html). For example:
+
+- `id.layer_uuid_txt` is the unique identifier of a soil layer, as text.
+- `k.ext_usda.a725_cmolc.kg` is extractable potassium, measured with USDA method A725, in cmol(+)/kg. Method A725 displaces exchangeable potassium with 1 M ammonium acetate at pH 7.0.
+- `scan_mir.600_abs` is the MIR absorbance, in log10 units, at 600 cm⁻¹. MIR columns run from 600 to 4000 cm⁻¹, every 2 cm⁻¹.
+
+## Why exchangeable potassium
+
+This course uses exchangeable potassium (Kex) as its OSSL example because of its role after nuclear accidents. Caesium and potassium behave alike in soil and in plants. Plant roots take up radiocaesium through the same pathways as potassium. When a soil holds plenty of exchangeable potassium, crops take up less radiocaesium. Potassium fertilisation is therefore a standard countermeasure on contaminated farmland, as used after the Chernobyl and Fukushima accidents. Planning it well needs Kex values for many fields, quickly. Wet chemistry is too slow and too costly for that. MIR spectroscopy is fast and cheap once a calibration model exists.
+
+[Albinet et al. (2022)](https://doi.org/10.1016/j.aiia.2022.10.001) trained such models on about 40,000 KSSL MIR spectra with Kex measured by the same 1 M ammonium acetate method. A convolutional neural network raised R² from 0.64, for a PLS baseline, to 0.79. This course stays with PLS and a small subset of the data. It is a simple, complete example to build on.
+
+## Downloading the library
+
+`src` points to the whole library at level 0, as one compressed CSV. `dest` is where the working sample will be saved, inside the course `data/` folder.
 
 ```{r}
 src = "https://storage.googleapis.com/soilspec4gg-public/ossl_all_L0_v1.2.csv.gz"
 dest = here("data", "ossl_mir_k_sample.rds")
 ```
 
+`read_csv()` downloads and reads the file in one step. The file is large. This takes a while and needs plenty of memory. You only need to run this page once. `8-kex-ossl-pipeline.qmd` reads the small file saved at the end, not the full library.
+
 ```{r}
 data = read_csv(src)
 ```
 
+## Detection limit
+
+A laboratory method cannot reliably measure values below its method detection limit (MDL). For Kex measured with 1 M ammonium acetate at pH 7, as in KSSL, the MDL is 0.06 cmol(+)/kg. Values close to it are uncertain, so samples below a threshold are dropped.
+
+[Albinet et al. (2022)](https://doi.org/10.1016/j.aiia.2022.10.001) set that threshold at 0.12 cmol(+)/kg, twice the MDL. It is low enough to keep 0.14 cmol(+)/kg in the data. In the Fukushima area, that Kex level kept the radiocaesium concentration of 99% of brown rice below the target level. The paper gives the full reasoning. `kex_threshold` holds this threshold.
+
 ```{r}
-# Kex Minimum Detection Level 
-# Ref: https://www.sciencedirect.com/science/article/pii/S2589721722000186
-kex_MDL <- 0.12 # cmol(+).kg−1
+# Kex threshold: 2 × MDL (MDL = 0.06 cmol(+)/kg)
+kex_threshold <- 0.12 # cmol(+).kg−1
 ```
+
+## Building the working sample
+
+One pipe turns the full library into the working sample and saves it. Each `|>` passes the result of one line to the next.
 
 ```{r}
 set.seed(123)
 data |> 
     filter(!is.na(k.ext_usda.a725_cmolc.kg)) |> 
     filter(if_all(starts_with("scan_mir"), ~ !is.na(.x))) |> 
-    filter(k.ext_usda.a725_cmolc.kg >= kex_MDL) |>
+    filter(k.ext_usda.a725_cmolc.kg >= kex_threshold) |>
     slice_sample(prop=0.1) |> 
     select(id.layer_uuid_txt, k.ext_usda.a725_cmolc.kg, starts_with("scan_mir")) |>
     rename_with(~ str_replace(.x, "scan_mir\\.(\\d+)_abs", "wn_\\1"), .cols = starts_with("scan_mir")) |> 
     rename(smp_id = id.layer_uuid_txt, kex = k.ext_usda.a725_cmolc.kg) |>
     write_rds(dest, compress = "xz")
 ```
+
+
+### Line by line
+
+- `set.seed(123)` fixes the random number generator. `slice_sample()` then draws the same samples every time the page runs.
+- `filter(!is.na(k.ext_usda.a725_cmolc.kg))` keeps only rows where Kex was measured.
+- `filter(if_all(starts_with("scan_mir"), ~ !is.na(.x)))` keeps only rows with a complete MIR spectrum. `starts_with("scan_mir")` selects every MIR column. `~ !is.na(.x)` is a short way to write a function: `.x` stands for each column in turn, and the function returns `TRUE` where a value is present. `if_all()` keeps a row only if the function returns `TRUE` for every selected column. This drops rows that have only a VisNIR spectrum, or none.
+- `filter(k.ext_usda.a725_cmolc.kg >= kex_threshold)` drops values below the detection threshold, twice the MDL.
+- `slice_sample(prop = 0.1)` keeps a random 10% of the remaining rows. That gives 4,548 samples, which is enough to work with and small enough to fit a model quickly in class.
+- `select(id.layer_uuid_txt, k.ext_usda.a725_cmolc.kg, starts_with("scan_mir"))` keeps only the columns the model needs: the sample identifier, the target and the MIR spectrum. It drops everything else, such as site data and the other soil properties.
+- `rename_with(~ str_replace(.x, "scan_mir\\.(\\d+)_abs", "wn_\\1"), .cols = starts_with("scan_mir"))` renames every MIR column, for example `scan_mir.600_abs` to `wn_600`. `rename_with()` applies a function to the names of the columns in `.cols`. `str_replace()` uses a regular expression. `\\.` matches a literal dot. `(\\d+)` captures the digits of the wavenumber. `\\1` puts those digits back in the new name. The backslashes are doubled because R strings need `\\` to write one `\`. The new names match those of the RT data. The recipe steps and plotting functions from earlier pages then work unchanged.
+- `rename(smp_id = id.layer_uuid_txt, kex = k.ext_usda.a725_cmolc.kg)` gives the two remaining columns short names. The new name goes on the left of `=`, the old name on the right.
+- `write_rds(dest, compress = "xz")` saves the result as an R object. `xz` compression is slow, but it gives the smallest file: about 20 MB here.
+
+## Scaling up
+
+The sample is deliberately small. To go further:
+
+- Change `prop` in `slice_sample()`, or remove the line, to use all of the roughly 45,000 samples that pass the filters.
+- Replace `k.ext_usda.a725_cmolc.kg` with another property, and set a detection level that suits its method.
+- Filter on `dataset.code_ascii_txt` to keep or compare particular source libraries.
+- Use the level 1 file to combine properties measured with different methods.
