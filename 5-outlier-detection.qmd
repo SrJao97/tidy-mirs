@@ -100,7 +100,7 @@ rec_pca_prep <- rec_pca |> prep()
 ```
 
 
-### Getting the PCA Loadings
+### Getting PCA loadings
 
 ```{r}
 loadings <- tidy(rec_pca_prep, number = 5, type = "coef")
@@ -129,7 +129,7 @@ ggplot(loadings, aes(wn, value)) +
 ```
 
 
-### Getting PCA Scores
+### Getting PCA scores
 
 
 ```{r}
@@ -144,6 +144,10 @@ scores |> glimpse()
 names(scores)
 ```
 
+
+## Outlier detection
+
+### Visual check in PC score space
 
 ```{r}
 scores |>
@@ -176,7 +180,7 @@ scores |>
 ```
 
 
-### Are they outliers?
+### Eyeballing flagged spectra
 
 ```{r}
 rec <- recipe(data) |>
@@ -204,17 +208,109 @@ data_processed <- bake(
 data_processed |> plot_spectra(highlight = c("RT_44", "RT_22"))
 ```
 
-## TODO
+### Mahalanobis distance in feature space
 
+The 2D checks above use only PC01 and PC02, and treat both axes as if they had the same spread. Mahalanobis distance from the centroid uses all retained components and scales each one by its own variance. PCA scores are orthogonal, so their covariance matrix is close to diagonal, and base R's `mahalanobis()` is enough. It returns the squared distance, so we take the square root.
+
+Squared Mahalanobis distance approximately follows a chi-squared distribution with degrees of freedom equal to the number of variables. We use this to set the cutoff, instead of a fixed value such as 3. A fixed value of 3 is close to `sqrt(qchisq(0.975, df = 3))`, so it suits about 3 components, not 10.
 
 ```{r}
-NAPT_smp_id = data |> filter(source == "NAPT") |> select(smp_id) |> pull(smp_id)
-NAPT_smp_id
+ALPHA <- 0.975
+
+pc_cols <- names(scores)[startsWith(names(scores), "PC")]
+X <- scores |> select(all_of(pc_cols)) |> as.matrix()
+
+feat_cutoff <- sqrt(qchisq(ALPHA, df = length(pc_cols)))
+feat_cutoff
 ```
 
+```{r}
+scores <- scores |>
+  mutate(dist_feat = sqrt(mahalanobis(X, colMeans(X), cov(X))))
+```
 
 ```{r}
-#| fig-width: 9
+#| fig-width: 7
 #| fig-height: 3
-data_processed |> plot_spectra(highlight = NAPT_smp_id)
+ggplot(scores, aes(dist_feat)) +
+  geom_histogram(bins = 40, fill = "steelblue", alpha = 0.8) +
+  geom_vline(xintercept = feat_cutoff, linetype = "dashed", colour = "firebrick") +
+  labs(x = "Mahalanobis distance (PC scores)", y = "Count")
+```
+
+```{r}
+scores |>
+  filter(dist_feat > feat_cutoff) |>
+  arrange(desc(dist_feat)) |>
+  select(smp_id, dist_feat, clay_perc, carbon_org_perc)
+```
+
+### Distance in target space
+
+We apply the same method to the soil properties. `clay_perc` is already log10-transformed by the recipe, which is the space the model uses. Samples with a missing value are dropped. With 2 properties, the cutoff uses `df = 2`.
+
+```{r}
+targets <- scores |>
+  select(smp_id, clay_perc, carbon_org_perc) |>
+  drop_na()
+
+Y <- targets |> select(clay_perc, carbon_org_perc) |> as.matrix()
+
+target_cutoff <- sqrt(qchisq(ALPHA, df = ncol(Y)))
+target_cutoff
+```
+
+```{r}
+targets <- targets |>
+  mutate(dist_target = sqrt(mahalanobis(Y, colMeans(Y), cov(Y))))
+```
+
+### Feature-space vs. target-space distance
+
+Plotting one distance against the other splits the samples into four regions:
+
+- **Both ordinary**: nothing to discuss.
+- **Unusual spectrum, ordinary chemistry**: the spectrum is unusual but the reported properties look normal. This can be a matrix effect (particle size, moisture, packing) or an instrument artefact.
+- **Unusual spectrum and chemistry**: the spectrum and the chemistry agree that the sample is unusual. This is more likely a genuine rare soil than a measurement problem.
+- **Ordinary spectrum, extreme chemistry**: the spectrum looks like the others, but a reported property is extreme. Be most suspicious of these. A genuinely unusual composition usually leaves a trace in the spectrum, so a wet-chemistry or transcription error is more likely.
+
+```{r}
+dists <- scores |>
+  select(smp_id, dist_feat) |>
+  inner_join(targets |> select(smp_id, dist_target), by = "smp_id") |>
+  mutate(region = case_when(
+    dist_feat <= feat_cutoff & dist_target <= target_cutoff ~ "Both ordinary",
+    dist_feat >  feat_cutoff & dist_target <= target_cutoff ~ "Unusual spectrum, ordinary chemistry",
+    dist_feat >  feat_cutoff & dist_target >  target_cutoff ~ "Unusual spectrum and chemistry",
+    TRUE                                                    ~ "Ordinary spectrum, extreme chemistry"
+  ))
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+ggplot(dists, aes(dist_feat, dist_target, colour = region)) +
+  geom_point(size = 2.5, alpha = 0.8) +
+  geom_vline(xintercept = feat_cutoff, linetype = "dashed") +
+  geom_hline(yintercept = target_cutoff, linetype = "dashed") +
+  geom_text(
+    data = filter(dists, region != "Both ordinary"),
+    aes(label = smp_id), vjust = -0.8, size = 3, show.legend = FALSE) +
+  scale_colour_manual(values = c(
+    "Both ordinary"                        = "grey60",
+    "Unusual spectrum, ordinary chemistry" = "steelblue",
+    "Unusual spectrum and chemistry"       = "darkgreen",
+    "Ordinary spectrum, extreme chemistry" = "firebrick")) +
+  labs(
+    x = "Mahalanobis distance, feature space (PC scores)",
+    y = "Mahalanobis distance, target space",
+    colour = NULL) +
+  theme(legend.position = "bottom") +
+  guides(colour = guide_legend(ncol = 2))
+```
+
+```{r}
+dists |>
+  filter(region != "Both ordinary") |>
+  arrange(region, desc(dist_feat))
 ```
