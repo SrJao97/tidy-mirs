@@ -51,6 +51,12 @@ renv/staging/
 
 # macOS
 .DS_Store
+
+# Quarto
 /.quarto/
 **/*.quarto_ipynb
 /_site/
+/*_files/
+
+# R plots written by non-interactive sessions
+Rplots.pdf
