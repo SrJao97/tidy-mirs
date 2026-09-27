@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-26">
+<meta name="dcterms.date" content="2026-09-27">
 
 <title>Predicting Exchangeable Potassium using OSSL – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -219,7 +219,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#getting-data" id="toc-getting-data" class="nav-link active" data-scroll-target="#getting-data">Getting data</a></li>
-  <li><a href="#cubist" id="toc-cubist" class="nav-link" data-scroll-target="#cubist">Cubist</a></li>
+  <li><a href="#splitting-the-data" id="toc-splitting-the-data" class="nav-link" data-scroll-target="#splitting-the-data">Splitting the data</a></li>
+  <li><a href="#pre-processing-recipe" id="toc-pre-processing-recipe" class="nav-link" data-scroll-target="#pre-processing-recipe">Pre-processing recipe</a></li>
+  <li><a href="#plotting-predictions" id="toc-plotting-predictions" class="nav-link" data-scroll-target="#plotting-predictions">Plotting predictions</a></li>
+  <li><a href="#pls" id="toc-pls" class="nav-link" data-scroll-target="#pls">PLS</a>
+  <ul class="collapse">
+  <li><a href="#tuning-the-number-of-components" id="toc-tuning-the-number-of-components" class="nav-link" data-scroll-target="#tuning-the-number-of-components">Tuning the number of components</a></li>
+  <li><a href="#final-fit" id="toc-final-fit" class="nav-link" data-scroll-target="#final-fit">Final fit</a></li>
+  </ul></li>
+  <li><a href="#cubist" id="toc-cubist" class="nav-link" data-scroll-target="#cubist">Cubist</a>
+  <ul class="collapse">
+  <li><a href="#how-cubist-works" id="toc-how-cubist-works" class="nav-link" data-scroll-target="#how-cubist-works">How Cubist works</a></li>
+  <li><a href="#using-pca-scores-as-predictors" id="toc-using-pca-scores-as-predictors" class="nav-link" data-scroll-target="#using-pca-scores-as-predictors">Using PCA scores as predictors</a></li>
+  <li><a href="#tuning-committees-and-neighbors" id="toc-tuning-committees-and-neighbors" class="nav-link" data-scroll-target="#tuning-committees-and-neighbors">Tuning <code>committees</code> and <code>neighbors</code></a></li>
+  <li><a href="#final-fit-1" id="toc-final-fit-1" class="nav-link" data-scroll-target="#final-fit-1">Final fit</a></li>
+  </ul></li>
+  <li><a href="#comparing-the-two-models" id="toc-comparing-the-two-models" class="nav-link" data-scroll-target="#comparing-the-two-models">Comparing the two models</a>
+  <ul class="collapse">
+  <li><a href="#how-much-data-does-a-model-need" id="toc-how-much-data-does-a-model-need" class="nav-link" data-scroll-target="#how-much-data-does-a-model-need">How much data does a model need?</a></li>
+  <li><a href="#trying-with-more-data" id="toc-trying-with-more-data" class="nav-link" data-scroll-target="#trying-with-more-data">Trying with more data</a></li>
+  </ul></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/8-kex-ossl-pipeline.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -246,7 +265,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 26, 2026</p>
+      <p class="date">September 27, 2026</p>
     </div>
   </div>
   
@@ -258,18 +277,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
+<p>This page runs the pipeline from the earlier pages on the OSSL working sample built in <code>7-preparing-ossl.qmd</code>: 4,548 soils with exchangeable potassium (Kex) and a MIR spectrum. It fits two models and compares them on the same test set. The first is PLS regression, as on the earlier pages. The second is Cubist, a rule-based model. The OSSL team found Cubist to be the best of the algorithms they tested (<a href="https://doi.org/10.1371/journal.pone.0296545">Safanelli et al., 2025</a>).</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(skimr)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plsmod)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plsmod)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rules)</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(hexbin)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"prepare_data.R"</span>))</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"steps.R"</span>))</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"split.R"</span>))</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">theme_set</span>(<span class="fu">theme_bw</span>())</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">tidymodels_prefer</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"steps.R"</span>))</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">theme_set</span>(<span class="fu">theme_bw</span>())</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">tidymodels_prefer</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>SRC_FILE <span class="ot">=</span> <span class="fu">here</span>(<span class="st">"data/ossl_mir_k_sample.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -278,11 +296,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>TARGET <span class="ot">&lt;-</span> <span class="st">"kex"</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Preprocessing ----------------------------------------------------------</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>RESAMPLE_BY <span class="ot">&lt;-</span> <span class="dv">5</span>L</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>RESAMPLING_GRID <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">4000</span>, <span class="dv">600</span>, <span class="at">by =</span> <span class="sc">-</span><span class="dv">5</span>)</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>SG_W        <span class="ot">&lt;-</span> <span class="dv">15</span>L   </span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>SG_P        <span class="ot">&lt;-</span> <span class="dv">3</span>L    </span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>SG_M        <span class="ot">&lt;-</span> <span class="dv">1</span>L  </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>SG_W        <span class="ot">&lt;-</span> <span class="dv">15</span>L   </span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>SG_P        <span class="ot">&lt;-</span> <span class="dv">3</span>L    </span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>SG_M        <span class="ot">&lt;-</span> <span class="dv">1</span>L  </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="getting-data" class="level2">
 <h2 class="anchored" data-anchor-id="getting-data">Getting data</h2>
@@ -300,21 +316,25 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>[1]  600 4000</code></pre>
 </div>
 </div>
+</section>
+<section id="splitting-the-data" class="level2">
+<h2 class="anchored" data-anchor-id="splitting-the-data">Splitting the data</h2>
+<p>With 4,548 samples, one validation set replaces cross-validation. <code>initial_validation_split()</code> splits the data three ways: 70% for training, 20% for validation and the remaining 10% for testing. That gives 3,183, 910 and 455 samples. Each candidate model is fitted on the training set and scored on the validation set. The test set is used once, at the end, as in <code>6-evaluating-performance.qmd</code>.</p>
+<p>A validation set of 910 samples gives a stable score on its own. Cross-validation would fit every candidate 5 or 10 times. That costs much more time for little gain at this size.</p>
+<p>With one validation set there is only one score per candidate. <code>std_err</code> is therefore <code>NA</code>, and <code>select_by_one_std_err()</code> cannot be used.</p>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>split <span class="ot">&lt;-</span> <span class="fu">initial_validation_split</span>(data, <span class="at">prop=</span><span class="fu">c</span>(<span class="fl">0.7</span>, <span class="fl">0.2</span>))</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># split &lt;- initial_split(data, prop = 0.8)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>split <span class="ot">&lt;-</span> <span class="fu">initial_validation_split</span>(data, <span class="at">prop =</span> <span class="fu">c</span>(<span class="fl">0.7</span>, <span class="fl">0.2</span>))</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>split</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;Training/Validation/Testing/Total&gt;
+&lt;3183/910/455/4548&gt;</code></pre>
 </div>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set.seed(123)</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># folds &lt;- vfold_cv(</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   training(split),</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">#   v = 5,</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   repeats = 1,</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   strata = TARGET,</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">#   breaks = 2</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co"># )</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+</section>
+<section id="pre-processing-recipe" class="level2">
+<h2 class="anchored" data-anchor-id="pre-processing-recipe">Pre-processing recipe</h2>
+<p>The recipe is the one from <code>4-feature-engineering.qmd</code>, without <code>step_resample()</code>. OSSL spectra are already on one common grid, every 2 cm⁻¹ from 600 to 4000 cm⁻¹, as the range check above shows.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>spc_cols <span class="ot">&lt;-</span> <span class="fu">names</span>(data)[<span class="fu">startsWith</span>(<span class="fu">names</span>(data), <span class="st">"wn_"</span>)]</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>meta_cols <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="fu">names</span>(data), <span class="fu">c</span>(TARGET, spc_cols))</span>
@@ -324,33 +344,55 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">update_role</span>(<span class="fu">all_of</span>(spc_cols), <span class="at">new_role =</span> <span class="st">"predictor"</span>) <span class="sc">|&gt;</span></span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">update_role</span>(<span class="fu">all_of</span>(meta_cols), <span class="at">new_role =</span> <span class="st">"metadata"</span>) <span class="sc">|&gt;</span> </span>
 <span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_log</span>(<span class="fu">all_outcomes</span>(), <span class="at">base =</span> <span class="dv">10</span>) <span class="sc">|&gt;</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># step_resample(grid = RESAMPLING_GRID) |&gt; </span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_snv</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_sg</span>(<span class="at">w =</span> SG_W, <span class="at">p =</span> SG_P, <span class="at">m =</span> SG_M)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_snv</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_sg</span>(<span class="at">w =</span> SG_W, <span class="at">p =</span> SG_P, <span class="at">m =</span> SG_M)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="plotting-predictions" class="level2">
+<h2 class="anchored" data-anchor-id="plotting-predictions">Plotting predictions</h2>
+<p>Both models end with the same plot of observed against predicted values, so a small function draws it. With 455 test samples, single points overlap. <code>geom_hex()</code> counts the samples in each hexagon instead, and the fill colour shows the count on a log scale. Both axes are in log10 units, because <code>step_log()</code> transformed the outcome.</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>plot_obs_pred <span class="ot">&lt;-</span> <span class="cf">function</span>(res, <span class="at">title =</span> <span class="cn">NULL</span>) {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">collect_predictions</span>(res) <span class="sc">|&gt;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> .data[[TARGET]], <span class="at">y =</span> .pred)) <span class="sc">+</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_hex</span>(<span class="at">bins =</span> <span class="dv">30</span>) <span class="sc">+</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_abline</span>(<span class="at">lty =</span> <span class="dv">2</span>, <span class="at">colour =</span> <span class="st">"grey30"</span>) <span class="sc">+</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_viridis_c</span>(<span class="at">option =</span> <span class="st">"mako"</span>, <span class="at">direction =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">begin =</span> <span class="fl">0.1</span>, <span class="at">end =</span> <span class="fl">0.85</span>, <span class="at">transform =</span> <span class="st">"log10"</span>) <span class="sc">+</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">x =</span> <span class="st">"Observed log10(Kex)"</span>, <span class="at">y =</span> <span class="st">"Predicted log10(Kex)"</span>,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">fill =</span> <span class="st">"Samples"</span>, <span class="at">title =</span> title) <span class="sc">+</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_obs_pred</span>()</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="pls" class="level2">
+<h2 class="anchored" data-anchor-id="pls">PLS</h2>
+<section id="tuning-the-number-of-components" class="level3">
+<h3 class="anchored" data-anchor-id="tuning-the-number-of-components">Tuning the number of components</h3>
+<p>The PLS part follows <code>6-evaluating-performance.qmd</code>. With 3,183 training samples, many more components can be useful than with the 49 RT samples. The grid runs from 5 to 100 components, in steps of 5.</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>pls_spec <span class="ot">&lt;-</span> <span class="fu">pls</span>(<span class="at">num_comp =</span> <span class="fu">tune</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"mixOmics"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"regression"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>pls_spec <span class="ot">&lt;-</span> <span class="fu">pls</span>(<span class="at">num_comp =</span> <span class="fu">tune</span>()) <span class="sc">|&gt;</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"mixOmics"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"regression"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>pls_wf <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">|&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(rec) <span class="sc">|&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(pls_spec)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>wf <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">|&gt;</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(rec) <span class="sc">|&gt;</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(pls_spec)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>num_comp_grid <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">num_comp =</span> <span class="fu">seq</span>(<span class="dv">5</span>, <span class="dv">100</span>, <span class="dv">5</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><code>validation_set(split)</code> turns the validation part of the split into a resample that <code>tune_grid()</code> can use.</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>pls_res <span class="ot">&lt;-</span> <span class="fu">tune_grid</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  pls_wf,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">resamples =</span> <span class="fu">validation_set</span>(split),</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">grid =</span> num_comp_grid</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>num_comp_grid <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">num_comp =</span> <span class="fu">seq</span>(<span class="dv">5</span>, <span class="dv">50</span>, <span class="dv">5</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>tune_res <span class="ot">&lt;-</span> <span class="fu">tune_grid</span>(</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  wf,</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">resamples =</span> <span class="fu">validation_set</span>(split),</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># resamples = folds,</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">grid =</span> num_comp_grid</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">autoplot</span>(tune_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">autoplot</span>(pls_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -360,91 +402,237 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># collect_metrics(tune_res) |&gt;</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   ggplot(aes(x = num_comp, y = mean)) +</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_line() +</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_errorbar(aes(ymin = mean - std_err, ymax = mean + std_err), width = 0.1, color = "grey20", linetype = "22") +</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_point(size=1.5) +</span></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   facet_wrap(~ .metric, scales = "free_y") +</span></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   labs(x = "Number of PLS components", y = NULL,</span></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co">#        title = "CV performance vs number of PLS components") +</span></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   theme_minimal()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>best_rmse <span class="ot">&lt;-</span> <span class="fu">select_best</span>(tune_res, <span class="at">metric =</span> <span class="st">"rmse"</span>)</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>best_rmse</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>pls_best <span class="ot">&lt;-</span> <span class="fu">select_best</span>(pls_res, <span class="at">metric =</span> <span class="st">"rmse"</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>pls_best</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 1 × 2
   num_comp .config         
      &lt;dbl&gt; &lt;chr&gt;           
-1       45 pre0_mod09_post0</code></pre>
+1       60 pre0_mod12_post0</code></pre>
 </div>
+</div>
+</section>
+<section id="final-fit" class="level3">
+<h3 class="anchored" data-anchor-id="final-fit">Final fit</h3>
+<p><code>last_fit()</code> fits the finalised workflow on the training set and scores it on the test set. With a three-way split, it leaves the validation set out of the fit by default. <code>add_validation_set = TRUE</code> would add it.</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>pls_final_wf <span class="ot">&lt;-</span> pls_wf <span class="sc">|&gt;</span> <span class="fu">finalize_workflow</span>(pls_best)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># best_1se &lt;- select_by_one_std_err(tune_res, metric = "rmse", num_comp)</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># best_1se</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>pls_final <span class="ot">&lt;-</span> pls_final_wf <span class="sc">|&gt;</span> <span class="fu">last_fit</span>(split)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>final_wf <span class="ot">&lt;-</span> wf <span class="sc">|&gt;</span> <span class="fu">finalize_workflow</span>(best_rmse)</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co"># final_wf &lt;- wf |&gt; finalize_workflow(best_1se)</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># or manually</span></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co"># final_wf &lt;- wf |&gt; finalize_workflow(tibble(num_comp = 10))</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>final_res <span class="ot">&lt;-</span> final_wf <span class="sc">|&gt;</span> <span class="fu">last_fit</span>(split)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_metrics</span>(final_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_metrics</span>(pls_final)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 4
   .metric .estimator .estimate .config        
   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;          
-1 rmse    standard       0.249 pre0_mod0_post0
-2 rsq     standard       0.603 pre0_mod0_post0</code></pre>
+1 rmse    standard       0.251 pre0_mod0_post0
+2 rsq     standard       0.587 pre0_mod0_post0</code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_predictions</span>(final_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_predictions</span>(pls_final)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 455 × 5
       .pred id                   kex  .row .config        
       &lt;dbl&gt; &lt;chr&gt;              &lt;dbl&gt; &lt;int&gt; &lt;chr&gt;          
- 1 -0.00770 train/test split -0.0262    15 pre0_mod0_post0
- 2 -0.206   train/test split -0.389     25 pre0_mod0_post0
- 3 -0.532   train/test split -0.306     26 pre0_mod0_post0
- 4 -0.155   train/test split -0.239     27 pre0_mod0_post0
- 5 -0.845   train/test split -0.625     34 pre0_mod0_post0
- 6  0.0229  train/test split -0.496     45 pre0_mod0_post0
- 7 -0.165   train/test split -0.0535    47 pre0_mod0_post0
- 8 -0.247   train/test split -0.0467    48 pre0_mod0_post0
- 9 -0.553   train/test split -0.381     53 pre0_mod0_post0
-10 -0.387   train/test split -0.352     59 pre0_mod0_post0
+ 1 -0.0984  train/test split -0.609     10 pre0_mod0_post0
+ 2 -0.0846  train/test split -0.0190    19 pre0_mod0_post0
+ 3 -0.394   train/test split -0.250     28 pre0_mod0_post0
+ 4 -0.213   train/test split -0.0467    47 pre0_mod0_post0
+ 5 -0.626   train/test split -0.536     55 pre0_mod0_post0
+ 6  0.159   train/test split  0.326     63 pre0_mod0_post0
+ 7 -0.00996 train/test split  0.265     66 pre0_mod0_post0
+ 8 -0.693   train/test split -0.754     71 pre0_mod0_post0
+ 9 -0.481   train/test split -0.434     83 pre0_mod0_post0
+10 -0.709   train/test split -0.676     84 pre0_mod0_post0
 # ℹ 445 more rows</code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_predictions</span>(final_res) <span class="sc">|&gt;</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> .data[[TARGET]], <span class="at">y =</span> .pred)) <span class="sc">+</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">lty =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hex</span>(<span class="at">bins=</span><span class="dv">40</span>) <span class="sc">+</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">trans =</span> <span class="st">"log10"</span>) <span class="sc">+</span></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">lty =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Observed Kex (cmol+/kg)"</span>, <span class="at">y =</span> <span class="st">"Predicted Kex (cmol+/kg)"</span>) <span class="sc">+</span></span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_obs_pred</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_obs_pred</span>(pls_final, <span class="st">"PLS"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="8-kex-ossl-pipeline_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
+<p><img src="8-kex-ossl-pipeline_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
 </figure>
 </div>
 </div>
 </div>
 </section>
+</section>
 <section id="cubist" class="level2">
 <h2 class="anchored" data-anchor-id="cubist">Cubist</h2>
+<section id="how-cubist-works" class="level3">
+<h3 class="anchored" data-anchor-id="how-cubist-works">How Cubist works</h3>
+<p>Cubist builds a set of rules. Each rule is a condition on the predictors, for example “PC01 &gt; 0.3 and PC04 ≤ -0.1”, and it holds its own linear regression. A sample is predicted by the linear models of the rules it meets. PLS fits one linear model to all samples. Cubist can fit different linear models to different kinds of soil.</p>
+<p>Two settings change how the final prediction is made:</p>
+<ul>
+<li><strong><code>committees</code></strong> builds a sequence of Cubist models. Each new model is fitted to an outcome adjusted for the errors of the model before it, in a way similar to boosting. The prediction is the average over all committee members. <code>committees = 1</code> is a single model.</li>
+<li><strong><code>neighbors</code></strong> adjusts each prediction using the most similar training samples. Cubist finds the <code>neighbors</code> nearest training samples and corrects the model prediction by how far the model was wrong on them. <code>neighbors = 0</code> turns this off. The maximum is 9.</li>
+</ul>
+</section>
+<section id="using-pca-scores-as-predictors" class="level3">
+<h3 class="anchored" data-anchor-id="using-pca-scores-as-predictors">Using PCA scores as predictors</h3>
+<p>Cubist searches for rule conditions one predictor at a time. With about 1,700 highly correlated wavenumbers, that search is slow, and the rules pick individual wavenumbers that happen to fit the noise. <code>step_pca()</code> first compresses the spectra into a few principal components. <code>threshold = 0.99</code> keeps as many components as it takes to explain 99% of the variance of the preprocessed spectra. <code>tune_grid()</code> fits the PCA inside the workflow, on the training set only.</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>rec_pca <span class="ot">&lt;-</span> rec <span class="sc">|&gt;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_pca</span>(<span class="fu">all_predictors</span>(), <span class="at">threshold =</span> <span class="fl">0.99</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The number of components this keeps on the training set:</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>rec_pca <span class="sc">|&gt;</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">prep</span>(<span class="at">training =</span> <span class="fu">training</span>(split)) <span class="sc">|&gt;</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bake</span>(<span class="at">new_data =</span> <span class="cn">NULL</span>) <span class="sc">|&gt;</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">starts_with</span>(<span class="st">"PC"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ncol</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 36</code></pre>
+</div>
+</div>
+</section>
+<section id="tuning-committees-and-neighbors" class="level3">
+<h3 class="anchored" data-anchor-id="tuning-committees-and-neighbors">Tuning <code>committees</code> and <code>neighbors</code></h3>
+<p><code>cubist_rules()</code> comes from the <code>rules</code> package, which adds rule-based models to <code>parsnip</code>. The grid crosses 4 values of <code>committees</code> with every value of <code>neighbors</code>. That is 40 candidates, but <code>neighbors</code> does not change the fitted model, only the prediction. <code>tune_grid()</code> therefore fits only 4 models and scores the 10 <code>neighbors</code> values from each one. <code>max_rules</code> stays at its default: no limit.</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>cub_spec <span class="ot">&lt;-</span> <span class="fu">cubist_rules</span>(<span class="at">committees =</span> <span class="fu">tune</span>(), <span class="at">neighbors =</span> <span class="fu">tune</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"Cubist"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>cub_wf <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">|&gt;</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(rec_pca) <span class="sc">|&gt;</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(cub_spec)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>cub_grid <span class="ot">&lt;-</span> <span class="fu">crossing</span>(</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">committees =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">10</span>, <span class="dv">50</span>, <span class="dv">100</span>),</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">neighbors  =</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">9</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>cub_res <span class="ot">&lt;-</span> <span class="fu">tune_grid</span>(</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  cub_wf,</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">resamples =</span> <span class="fu">validation_set</span>(split),</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">grid =</span> cub_grid</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">autoplot</span>(cub_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="8-kex-ossl-pipeline_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">show_best</span>(cub_res, <span class="at">metric =</span> <span class="st">"rmse"</span>, <span class="at">n =</span> <span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5 × 8
+  committees neighbors .metric .estimator  mean     n std_err .config         
+       &lt;dbl&gt;     &lt;int&gt; &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;           
+1        100         6 rmse    standard   0.244     1      NA pre0_mod37_post0
+2        100         8 rmse    standard   0.244     1      NA pre0_mod39_post0
+3        100         9 rmse    standard   0.244     1      NA pre0_mod40_post0
+4        100         7 rmse    standard   0.244     1      NA pre0_mod38_post0
+5         50         6 rmse    standard   0.245     1      NA pre0_mod27_post0</code></pre>
+</div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>cub_best <span class="ot">&lt;-</span> <span class="fu">select_best</span>(cub_res, <span class="at">metric =</span> <span class="st">"rmse"</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>cub_best</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 3
+  committees neighbors .config         
+       &lt;dbl&gt;     &lt;int&gt; &lt;chr&gt;           
+1        100         6 pre0_mod37_post0</code></pre>
+</div>
+</div>
+</section>
+<section id="final-fit-1" class="level3">
+<h3 class="anchored" data-anchor-id="final-fit-1">Final fit</h3>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>cub_final <span class="ot">&lt;-</span> cub_wf <span class="sc">|&gt;</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">finalize_workflow</span>(cub_best) <span class="sc">|&gt;</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">last_fit</span>(split)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_metrics</span>(cub_final)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 4
+  .metric .estimator .estimate .config        
+  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;          
+1 rmse    standard       0.251 pre0_mod0_post0
+2 rsq     standard       0.585 pre0_mod0_post0</code></pre>
+</div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_obs_pred</span>(cub_final, <span class="st">"Cubist"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="8-kex-ossl-pipeline_files/figure-html/unnamed-chunk-31-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="comparing-the-two-models" class="level2">
+<h2 class="anchored" data-anchor-id="comparing-the-two-models">Comparing the two models</h2>
+<p>Both models were tuned on the same validation set and tested on the same 455 test samples. Their test scores compare directly.</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_rows</span>(</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">PLS    =</span> <span class="fu">collect_metrics</span>(pls_final),</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Cubist =</span> <span class="fu">collect_metrics</span>(cub_final),</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">.id =</span> <span class="st">"model"</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(model, .metric, .estimate) <span class="sc">|&gt;</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> .metric, <span class="at">values_from =</span> .estimate)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 3
+  model   rmse   rsq
+  &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt;
+1 PLS    0.251 0.587
+2 Cubist 0.251 0.585</code></pre>
+</div>
+</div>
+<p>On this sample, the two models score about the same. The difference is too small to mean anything. Another random split would change both scores by more than that.</p>
+<section id="how-much-data-does-a-model-need" class="level3">
+<h3 class="anchored" data-anchor-id="how-much-data-does-a-model-need">How much data does a model need?</h3>
+<p><a href="#fig-learning-curves" class="quarto-xref">Figure&nbsp;1</a> shows why. It comes from <a href="https://doi.org/10.1016/j.aiia.2022.10.001">Albinet et al.&nbsp;(2022)</a>, who predicted Kex from KSSL MIR spectra with PLS and with a convolutional neural network (CNN). Both models were trained on growing subsets of the data. Each point is the mean R² over 20 different test splits, and the shaded band is ±1 standard deviation.</p>
+<div id="fig-learning-curves" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-learning-curves-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/albinet2022-fig3-learning-curves.jpg" class="img-fluid figure-img" style="width:50.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-learning-curves-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Learning curves of PLSR and CNN models predicting Kex in a growing data regime, using all Soil Taxonomy Orders. Mean and standard deviation of R² over 20 test splits. Reproduced from Albinet et al.&nbsp;(2022), Fig. 3, under <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/">CC BY-NC-ND 4.0</a>.
+</figcaption>
+</figure>
+</div>
+<p>Three things stand out:</p>
+<ul>
+<li>At about 4,500 samples, the size of this working sample, the CNN gains only about 0.05 in R² over PLS. The two bands overlap.</li>
+<li>At that size, R² varies by about ±0.05 from one test split to another. A single split, as on this page, cannot separate two models that differ by less than that.</li>
+<li>PLS levels off at about 0.64 from 10,000 samples. The CNN keeps improving, to about 0.77. The spectra hold more information about Kex than a linear model can use, but a flexible model needs a lot of data to find it.</li>
+</ul>
+<p>Cubist is also a flexible model: each rule fits its own linear model to a different group of soils. Whether it follows the CNN curve or the PLS curve as the data grows is an open question, and one you can test.</p>
+</section>
+<section id="trying-with-more-data" class="level3">
+<h3 class="anchored" data-anchor-id="trying-with-more-data">Trying with more data</h3>
+<p>The working sample keeps 10% of the OSSL samples that have both a Kex value and a MIR spectrum. To use more:</p>
+<ol type="1">
+<li>In <code>7-preparing-ossl.qmd</code>, raise <code>prop</code> in <code>slice_sample()</code>, or remove that line to keep all of them, about 45,000 samples.</li>
+<li>Run that page again to save the larger sample. It overwrites <code>data/ossl_mir_k_sample.rds</code>.</li>
+<li>Run this page again. Fitting takes longer as the data grows, especially for Cubist with many committees.</li>
+</ol>
+<p>To compare models fairly, repeat the comparison over several random splits, or use cross-validation as in <code>6-evaluating-performance.qmd</code>. Then compare the spread of the scores, not only their means. That is how <a href="#fig-learning-curves" class="quarto-xref">Figure&nbsp;1</a> was built.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
