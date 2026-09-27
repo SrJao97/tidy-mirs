@@ -13,16 +13,16 @@ execute:
   message: false
 ---
 
+This page runs the pipeline from the earlier pages on the OSSL working sample built in `7-preparing-ossl.qmd`: 4,548 soils with exchangeable potassium (Kex) and a MIR spectrum. It fits two models and compares them on the same test set. The first is PLS regression, as on the earlier pages. The second is Cubist, a rule-based model. The OSSL team found Cubist to be the best of the algorithms they tested ([Safanelli et al., 2025](https://doi.org/10.1371/journal.pone.0296545)).
+
 ```{r}
 library(here)
 library(tidyverse)
 library(tidymodels)
-library(skimr)
 library(plsmod)
+library(rules)
 library(hexbin)
-source(here("R", "prepare_data.R"))
 source(here("R", "steps.R"))
-source(here("R", "split.R"))
 theme_set(theme_bw())
 tidymodels_prefer()
 ```
@@ -35,8 +35,6 @@ SRC_FILE = here("data/ossl_mir_k_sample.rds")
 TARGET <- "kex"
 
 # --- Preprocessing ----------------------------------------------------------
-RESAMPLE_BY <- 5L
-RESAMPLING_GRID <- seq(4000, 600, by = -5)
 SG_W        <- 15L   
 SG_P        <- 3L    
 SG_M        <- 1L  
@@ -59,24 +57,23 @@ data |>
   range()
 ```
 
+## Splitting the data
+
+With 4,548 samples, one validation set replaces cross-validation. `initial_validation_split()` splits the data three ways: 70% for training, 20% for validation and the remaining 10% for testing. That gives 3,183, 910 and 455 samples. Each candidate model is fitted on the training set and scored on the validation set. The test set is used once, at the end, as in `6-evaluating-performance.qmd`.
+
+A validation set of 910 samples gives a stable score on its own. Cross-validation would fit every candidate 5 or 10 times. That costs much more time for little gain at this size.
+
+With one validation set there is only one score per candidate. `std_err` is therefore `NA`, and `select_by_one_std_err()` cannot be used.
+
 ```{r}
-split <- initial_validation_split(data, prop=c(0.7, 0.2))
-# split <- initial_split(data, prop = 0.8)
+set.seed(123)
+split <- initial_validation_split(data, prop = c(0.7, 0.2))
+split
 ```
 
+## Pre-processing recipe
 
-```{r}
-# set.seed(123)
-
-# folds <- vfold_cv(
-#   training(split),
-#   v = 5,
-#   repeats = 1,
-#   strata = TARGET,
-#   breaks = 2
-# )
-```
-
+The recipe is the one from `4-feature-engineering.qmd`, without `step_resample()`. OSSL spectra are already on one common grid, every 2 cm⁻¹ from 600 to 4000 cm⁻¹, as the range check above shows.
 
 ```{r}
 spc_cols <- names(data)[startsWith(names(data), "wn_")]
@@ -87,10 +84,33 @@ rec <- recipe(data) |>
   update_role(all_of(spc_cols), new_role = "predictor") |>
   update_role(all_of(meta_cols), new_role = "metadata") |> 
   step_log(all_outcomes(), base = 10) |>
-  # step_resample(grid = RESAMPLING_GRID) |> 
   step_snv() |> 
   step_sg(w = SG_W, p = SG_P, m = SG_M)
 ```
+
+## Plotting predictions
+
+Both models end with the same plot of observed against predicted values, so a small function draws it. With 455 test samples, single points overlap. `geom_hex()` counts the samples in each hexagon instead, and the fill colour shows the count on a log scale. Both axes are in log10 units, because `step_log()` transformed the outcome.
+
+```{r}
+plot_obs_pred <- function(res, title = NULL) {
+  collect_predictions(res) |>
+    ggplot(aes(x = .data[[TARGET]], y = .pred)) +
+    geom_hex(bins = 30) +
+    geom_abline(lty = 2, colour = "grey30") +
+    scale_fill_viridis_c(option = "mako", direction = -1, begin = 0.1, end = 0.85, transform = "log10") +
+    labs(
+      x = "Observed log10(Kex)", y = "Predicted log10(Kex)",
+      fill = "Samples", title = title) +
+    coord_obs_pred()
+}
+```
+
+## PLS
+
+### Tuning the number of components
+
+The PLS part follows `6-evaluating-performance.qmd`. With 3,183 training samples, many more components can be useful than with the 49 RT samples. The grid runs from 5 to 100 components, in steps of 5.
 
 ```{r}
 pls_spec <- pls(num_comp = tune()) |>
@@ -98,94 +118,190 @@ pls_spec <- pls(num_comp = tune()) |>
   set_mode("regression")
 ```
 
-
-
 ```{r}
-wf <- workflow() |>
+pls_wf <- workflow() |>
   add_recipe(rec) |>
   add_model(pls_spec)
 ```
 
-
 ```{r}
-num_comp_grid <- tibble(num_comp = seq(5, 50, 5))
+num_comp_grid <- tibble(num_comp = seq(5, 100, 5))
 ```
 
+`validation_set(split)` turns the validation part of the split into a resample that `tune_grid()` can use.
 
 ```{r}
-tune_res <- tune_grid(
-  wf,
+pls_res <- tune_grid(
+  pls_wf,
   resamples = validation_set(split),
-  # resamples = folds,
   grid = num_comp_grid
 )
 ```
 
-
 ```{r}
-autoplot(tune_res)
+autoplot(pls_res)
 ```
 
-
 ```{r}
-# collect_metrics(tune_res) |>
-#   ggplot(aes(x = num_comp, y = mean)) +
-#   geom_line() +
-#   geom_errorbar(aes(ymin = mean - std_err, ymax = mean + std_err), width = 0.1, color = "grey20", linetype = "22") +
-#   geom_point(size=1.5) +
-#   facet_wrap(~ .metric, scales = "free_y") +
-#   labs(x = "Number of PLS components", y = NULL,
-#        title = "CV performance vs number of PLS components") +
-#   theme_minimal()
+pls_best <- select_best(pls_res, metric = "rmse")
+pls_best
 ```
 
+### Final fit
+
+`last_fit()` fits the finalised workflow on the training set and scores it on the test set. With a three-way split, it leaves the validation set out of the fit by default. `add_validation_set = TRUE` would add it.
 
 ```{r}
-best_rmse <- select_best(tune_res, metric = "rmse")
-best_rmse
+pls_final_wf <- pls_wf |> finalize_workflow(pls_best)
 ```
 
-
 ```{r}
-# best_1se <- select_by_one_std_err(tune_res, metric = "rmse", num_comp)
-# best_1se
+pls_final <- pls_final_wf |> last_fit(split)
 ```
 
-
 ```{r}
-final_wf <- wf |> finalize_workflow(best_rmse)
-# final_wf <- wf |> finalize_workflow(best_1se)
-
-# or manually
-# final_wf <- wf |> finalize_workflow(tibble(num_comp = 10))
+collect_metrics(pls_final)
 ```
 
-
-
 ```{r}
-final_res <- final_wf |> last_fit(split)
+collect_predictions(pls_final)
 ```
 
-
 ```{r}
-collect_metrics(final_res)
-```
-
-
-```{r}
-collect_predictions(final_res)
-```
-
-
-```{r}
-collect_predictions(final_res) |>
-  ggplot(aes(x = .data[[TARGET]], y = .pred)) +
-  geom_abline(lty = 2) +
-  geom_hex(bins=40) +
-  scale_fill_viridis_c(trans = "log10") +
-  geom_abline(lty = 2) +
-  labs(x = "Observed Kex (cmol+/kg)", y = "Predicted Kex (cmol+/kg)") +
-  coord_obs_pred()
+#| fig-width: 6
+#| fig-height: 5
+plot_obs_pred(pls_final, "PLS")
 ```
 
 ## Cubist
+
+### How Cubist works
+
+Cubist builds a set of rules. Each rule is a condition on the predictors, for example "PC01 > 0.3 and PC04 ≤ -0.1", and it holds its own linear regression. A sample is predicted by the linear models of the rules it meets. PLS fits one linear model to all samples. Cubist can fit different linear models to different kinds of soil.
+
+Two settings change how the final prediction is made:
+
+- **`committees`** builds a sequence of Cubist models. Each new model is fitted to an outcome adjusted for the errors of the model before it, in a way similar to boosting. The prediction is the average over all committee members. `committees = 1` is a single model.
+- **`neighbors`** adjusts each prediction using the most similar training samples. Cubist finds the `neighbors` nearest training samples and corrects the model prediction by how far the model was wrong on them. `neighbors = 0` turns this off. The maximum is 9.
+
+### Using PCA scores as predictors
+
+Cubist searches for rule conditions one predictor at a time. With about 1,700 highly correlated wavenumbers, that search is slow, and the rules pick individual wavenumbers that happen to fit the noise. `step_pca()` first compresses the spectra into a few principal components. `threshold = 0.99` keeps as many components as it takes to explain 99% of the variance of the preprocessed spectra. `tune_grid()` fits the PCA inside the workflow, on the training set only.
+
+```{r}
+rec_pca <- rec |>
+  step_pca(all_predictors(), threshold = 0.99)
+```
+
+The number of components this keeps on the training set:
+
+```{r}
+rec_pca |>
+  prep(training = training(split)) |>
+  bake(new_data = NULL) |>
+  select(starts_with("PC")) |>
+  ncol()
+```
+
+### Tuning `committees` and `neighbors`
+
+`cubist_rules()` comes from the `rules` package, which adds rule-based models to `parsnip`. The grid crosses 4 values of `committees` with every value of `neighbors`. That is 40 candidates, but `neighbors` does not change the fitted model, only the prediction. `tune_grid()` therefore fits only 4 models and scores the 10 `neighbors` values from each one. `max_rules` stays at its default: no limit.
+
+```{r}
+cub_spec <- cubist_rules(committees = tune(), neighbors = tune()) |>
+  set_engine("Cubist")
+```
+
+```{r}
+cub_wf <- workflow() |>
+  add_recipe(rec_pca) |>
+  add_model(cub_spec)
+```
+
+```{r}
+cub_grid <- crossing(
+  committees = c(1, 10, 50, 100),
+  neighbors  = 0:9
+)
+```
+
+```{r}
+cub_res <- tune_grid(
+  cub_wf,
+  resamples = validation_set(split),
+  grid = cub_grid
+)
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 4
+autoplot(cub_res)
+```
+
+```{r}
+show_best(cub_res, metric = "rmse", n = 5)
+```
+
+```{r}
+cub_best <- select_best(cub_res, metric = "rmse")
+cub_best
+```
+
+### Final fit
+
+```{r}
+cub_final <- cub_wf |>
+  finalize_workflow(cub_best) |>
+  last_fit(split)
+```
+
+```{r}
+collect_metrics(cub_final)
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 5
+plot_obs_pred(cub_final, "Cubist")
+```
+
+## Comparing the two models
+
+Both models were tuned on the same validation set and tested on the same 455 test samples. Their test scores compare directly.
+
+```{r}
+bind_rows(
+  PLS    = collect_metrics(pls_final),
+  Cubist = collect_metrics(cub_final),
+  .id = "model"
+) |>
+  select(model, .metric, .estimate) |>
+  pivot_wider(names_from = .metric, values_from = .estimate)
+```
+
+On this sample, the two models score about the same. The difference is too small to mean anything. Another random split would change both scores by more than that.
+
+### How much data does a model need?
+
+@fig-learning-curves shows why. It comes from [Albinet et al. (2022)](https://doi.org/10.1016/j.aiia.2022.10.001), who predicted Kex from KSSL MIR spectra with PLS and with a convolutional neural network (CNN). Both models were trained on growing subsets of the data. Each point is the mean R² over 20 different test splits, and the shaded band is ±1 standard deviation.
+
+![Learning curves of PLSR and CNN models predicting Kex in a growing data regime, using all Soil Taxonomy Orders. Mean and standard deviation of R² over 20 test splits. Reproduced from Albinet et al. (2022), Fig. 3, under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/).](images/albinet2022-fig3-learning-curves.jpg){#fig-learning-curves width=50%}
+
+Three things stand out:
+
+- At about 4,500 samples, the size of this working sample, the CNN gains only about 0.05 in R² over PLS. The two bands overlap.
+- At that size, R² varies by about ±0.05 from one test split to another. A single split, as on this page, cannot separate two models that differ by less than that.
+- PLS levels off at about 0.64 from 10,000 samples. The CNN keeps improving, to about 0.77. The spectra hold more information about Kex than a linear model can use, but a flexible model needs a lot of data to find it.
+
+Cubist is also a flexible model: each rule fits its own linear model to a different group of soils. Whether it follows the CNN curve or the PLS curve as the data grows is an open question, and one you can test.
+
+### Trying with more data
+
+The working sample keeps 10% of the OSSL samples that have both a Kex value and a MIR spectrum. To use more:
+
+1. In `7-preparing-ossl.qmd`, raise `prop` in `slice_sample()`, or remove that line to keep all of them, about 45,000 samples.
+2. Run that page again to save the larger sample. It overwrites `data/ossl_mir_k_sample.rds`.
+3. Run this page again. Fitting takes longer as the data grows, especially for Cubist with many committees.
+
+To compare models fairly, repeat the comparison over several random splits, or use cross-validation as in `6-evaluating-performance.qmd`. Then compare the spread of the scores, not only their means. That is how @fig-learning-curves was built.
