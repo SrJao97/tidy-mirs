@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-26">
+<meta name="dcterms.date" content="2026-09-27">
 
 <title>Outlier detection – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -222,11 +222,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#pre-processing-recipe" id="toc-pre-processing-recipe" class="nav-link" data-scroll-target="#pre-processing-recipe">Pre-processing recipe</a></li>
   <li><a href="#principal-component-analysis" id="toc-principal-component-analysis" class="nav-link" data-scroll-target="#principal-component-analysis">Principal Component Analysis</a>
   <ul class="collapse">
-  <li><a href="#getting-the-pca-loadings" id="toc-getting-the-pca-loadings" class="nav-link" data-scroll-target="#getting-the-pca-loadings">Getting the PCA Loadings</a></li>
-  <li><a href="#getting-pca-scores" id="toc-getting-pca-scores" class="nav-link" data-scroll-target="#getting-pca-scores">Getting PCA Scores</a></li>
-  <li><a href="#are-they-outliers" id="toc-are-they-outliers" class="nav-link" data-scroll-target="#are-they-outliers">Are they outliers?</a></li>
+  <li><a href="#getting-pca-loadings" id="toc-getting-pca-loadings" class="nav-link" data-scroll-target="#getting-pca-loadings">Getting PCA loadings</a></li>
+  <li><a href="#getting-pca-scores" id="toc-getting-pca-scores" class="nav-link" data-scroll-target="#getting-pca-scores">Getting PCA scores</a></li>
   </ul></li>
-  <li><a href="#todo" id="toc-todo" class="nav-link" data-scroll-target="#todo">TODO</a></li>
+  <li><a href="#outlier-detection" id="toc-outlier-detection" class="nav-link" data-scroll-target="#outlier-detection">Outlier detection</a>
+  <ul class="collapse">
+  <li><a href="#visual-check-in-pc-score-space" id="toc-visual-check-in-pc-score-space" class="nav-link" data-scroll-target="#visual-check-in-pc-score-space">Visual check in PC score space</a></li>
+  <li><a href="#eyeballing-flagged-spectra" id="toc-eyeballing-flagged-spectra" class="nav-link" data-scroll-target="#eyeballing-flagged-spectra">Eyeballing flagged spectra</a></li>
+  <li><a href="#mahalanobis-distance-in-feature-space" id="toc-mahalanobis-distance-in-feature-space" class="nav-link" data-scroll-target="#mahalanobis-distance-in-feature-space">Mahalanobis distance in feature space</a></li>
+  <li><a href="#distance-in-target-space" id="toc-distance-in-target-space" class="nav-link" data-scroll-target="#distance-in-target-space">Distance in target space</a></li>
+  <li><a href="#feature-space-vs.-target-space-distance" id="toc-feature-space-vs.-target-space-distance" class="nav-link" data-scroll-target="#feature-space-vs.-target-space-distance">Feature-space vs.&nbsp;target-space distance</a></li>
+  </ul></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/5-outlier-detection.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -253,7 +259,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 26, 2026</p>
+      <p class="date">September 27, 2026</p>
     </div>
   </div>
   
@@ -377,8 +383,8 @@ The retained training set is ~ 0.44 Mb  in memory.</code></pre>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>rec_pca_prep <span class="ot">&lt;-</span> rec_pca <span class="sc">|&gt;</span> <span class="fu">prep</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<section id="getting-the-pca-loadings" class="level3">
-<h3 class="anchored" data-anchor-id="getting-the-pca-loadings">Getting the PCA Loadings</h3>
+<section id="getting-pca-loadings" class="level3">
+<h3 class="anchored" data-anchor-id="getting-pca-loadings">Getting PCA loadings</h3>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>loadings <span class="ot">&lt;-</span> <span class="fu">tidy</span>(rec_pca_prep, <span class="at">number =</span> <span class="dv">5</span>, <span class="at">type =</span> <span class="st">"coef"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -407,7 +413,7 @@ The retained training set is ~ 0.44 Mb  in memory.</code></pre>
 </div>
 </section>
 <section id="getting-pca-scores" class="level3">
-<h3 class="anchored" data-anchor-id="getting-pca-scores">Getting PCA Scores</h3>
+<h3 class="anchored" data-anchor-id="getting-pca-scores">Getting PCA scores</h3>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>scores <span class="ot">&lt;-</span> <span class="fu">bake</span>(</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  rec_pca_prep,</span>
@@ -447,6 +453,12 @@ $ PC10             &lt;dbl&gt; -0.0422291439, -0.1523821419, -0.0218271534, -0.0
 [17] "PC09"             "PC10"            </code></pre>
 </div>
 </div>
+</section>
+</section>
+<section id="outlier-detection" class="level2">
+<h2 class="anchored" data-anchor-id="outlier-detection">Outlier detection</h2>
+<section id="visual-check-in-pc-score-space" class="level3">
+<h3 class="anchored" data-anchor-id="visual-check-in-pc-score-space">Visual check in PC score space</h3>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>scores <span class="sc">|&gt;</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(PC01, PC02)) <span class="sc">+</span></span>
@@ -508,8 +520,8 @@ $ PC10             &lt;dbl&gt; -0.0422291439, -0.1523821419, -0.0218271534, -0.0
 </div>
 </div>
 </section>
-<section id="are-they-outliers" class="level3">
-<h3 class="anchored" data-anchor-id="are-they-outliers">Are they outliers?</h3>
+<section id="eyeballing-flagged-spectra" class="level3">
+<h3 class="anchored" data-anchor-id="eyeballing-flagged-spectra">Eyeballing flagged spectra</h3>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>rec <span class="ot">&lt;-</span> <span class="fu">recipe</span>(data) <span class="sc">|&gt;</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">update_role</span>(<span class="fu">all_of</span>(TARGET),  <span class="at">new_role =</span> <span class="st">"outcome"</span>) <span class="sc">|&gt;</span></span>
@@ -543,29 +555,144 @@ The retained training set is ~ 0.45 Mb  in memory.</code></pre>
 </div>
 </div>
 </section>
-</section>
-<section id="todo" class="level2">
-<h2 class="anchored" data-anchor-id="todo">TODO</h2>
+<section id="mahalanobis-distance-in-feature-space" class="level3">
+<h3 class="anchored" data-anchor-id="mahalanobis-distance-in-feature-space">Mahalanobis distance in feature space</h3>
+<p>The 2D checks above use only PC01 and PC02, and treat both axes as if they had the same spread. Mahalanobis distance from the centroid uses all retained components and scales each one by its own variance. PCA scores are orthogonal, so their covariance matrix is close to diagonal, and base R’s <code>mahalanobis()</code> is enough. It returns the squared distance, so we take the square root.</p>
+<p>Squared Mahalanobis distance approximately follows a chi-squared distribution with degrees of freedom equal to the number of variables. We use this to set the cutoff, instead of a fixed value such as 3. A fixed value of 3 is close to <code>sqrt(qchisq(0.975, df = 3))</code>, so it suits about 3 components, not 10.</p>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>NAPT_smp_id <span class="ot">=</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(source <span class="sc">==</span> <span class="st">"NAPT"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(smp_id) <span class="sc">|&gt;</span> <span class="fu">pull</span>(smp_id)</span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>NAPT_smp_id</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>ALPHA <span class="ot">&lt;-</span> <span class="fl">0.975</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>pc_cols <span class="ot">&lt;-</span> <span class="fu">names</span>(scores)[<span class="fu">startsWith</span>(<span class="fu">names</span>(scores), <span class="st">"PC"</span>)]</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> scores <span class="sc">|&gt;</span> <span class="fu">select</span>(<span class="fu">all_of</span>(pc_cols)) <span class="sc">|&gt;</span> <span class="fu">as.matrix</span>()</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>feat_cutoff <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">qchisq</span>(ALPHA, <span class="at">df =</span> <span class="fu">length</span>(pc_cols)))</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>feat_cutoff</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code> [1] "RT_61" "RT_62" "RT_63" "RT_64" "RT_65" "RT_66" "RT_67" "RT_68" "RT_69"
-[10] "RT_70"</code></pre>
+<pre><code>[1] 4.525834</code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>data_processed <span class="sc">|&gt;</span> <span class="fu">plot_spectra</span>(<span class="at">highlight =</span> NAPT_smp_id)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>scores <span class="ot">&lt;-</span> scores <span class="sc">|&gt;</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">dist_feat =</span> <span class="fu">sqrt</span>(<span class="fu">mahalanobis</span>(X, <span class="fu">colMeans</span>(X), <span class="fu">cov</span>(X))))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(scores, <span class="fu">aes</span>(dist_feat)) <span class="sc">+</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">40</span>, <span class="at">fill =</span> <span class="st">"steelblue"</span>, <span class="at">alpha =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> feat_cutoff, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">colour =</span> <span class="st">"firebrick"</span>) <span class="sc">+</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Mahalanobis distance (PC scores)"</span>, <span class="at">y =</span> <span class="st">"Count"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="5-outlier-detection_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="864"></p>
+<p><img src="5-outlier-detection_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>scores <span class="sc">|&gt;</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(dist_feat <span class="sc">&gt;</span> feat_cutoff) <span class="sc">|&gt;</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(dist_feat)) <span class="sc">|&gt;</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(smp_id, dist_feat, clay_perc, carbon_org_perc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5 × 4
+  smp_id dist_feat clay_perc carbon_org_perc
+  &lt;chr&gt;      &lt;dbl&gt;     &lt;dbl&gt;           &lt;dbl&gt;
+1 RT_42       7.99     NA             49.1  
+2 RT_44       7.87   -Inf             NA    
+3 RT_69       5.28      1.69           2.56 
+4 RT_27       4.84      1.43           0.172
+5 RT_35       4.70      1.22           2.78 </code></pre>
+</div>
+</div>
+</section>
+<section id="distance-in-target-space" class="level3">
+<h3 class="anchored" data-anchor-id="distance-in-target-space">Distance in target space</h3>
+<p>We apply the same method to the soil properties. <code>clay_perc</code> is already log10-transformed by the recipe, which is the space the model uses. Samples with a missing value are dropped. With 2 properties, the cutoff uses <code>df = 2</code>.</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>targets <span class="ot">&lt;-</span> scores <span class="sc">|&gt;</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(smp_id, clay_perc, carbon_org_perc) <span class="sc">|&gt;</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>()</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>Y <span class="ot">&lt;-</span> targets <span class="sc">|&gt;</span> <span class="fu">select</span>(clay_perc, carbon_org_perc) <span class="sc">|&gt;</span> <span class="fu">as.matrix</span>()</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>target_cutoff <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">qchisq</span>(ALPHA, <span class="at">df =</span> <span class="fu">ncol</span>(Y)))</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>target_cutoff</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 2.716203</code></pre>
+</div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>targets <span class="ot">&lt;-</span> targets <span class="sc">|&gt;</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">dist_target =</span> <span class="fu">sqrt</span>(<span class="fu">mahalanobis</span>(Y, <span class="fu">colMeans</span>(Y), <span class="fu">cov</span>(Y))))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="feature-space-vs.-target-space-distance" class="level3">
+<h3 class="anchored" data-anchor-id="feature-space-vs.-target-space-distance">Feature-space vs.&nbsp;target-space distance</h3>
+<p>Plotting one distance against the other splits the samples into four regions:</p>
+<ul>
+<li><strong>Both ordinary</strong>: nothing to discuss.</li>
+<li><strong>Unusual spectrum, ordinary chemistry</strong>: the spectrum is unusual but the reported properties look normal. This can be a matrix effect (particle size, moisture, packing) or an instrument artefact.</li>
+<li><strong>Unusual spectrum and chemistry</strong>: the spectrum and the chemistry agree that the sample is unusual. This is more likely a genuine rare soil than a measurement problem.</li>
+<li><strong>Ordinary spectrum, extreme chemistry</strong>: the spectrum looks like the others, but a reported property is extreme. Be most suspicious of these. A genuinely unusual composition usually leaves a trace in the spectrum, so a wet-chemistry or transcription error is more likely.</li>
+</ul>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>dists <span class="ot">&lt;-</span> scores <span class="sc">|&gt;</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(smp_id, dist_feat) <span class="sc">|&gt;</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(targets <span class="sc">|&gt;</span> <span class="fu">select</span>(smp_id, dist_target), <span class="at">by =</span> <span class="st">"smp_id"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">region =</span> <span class="fu">case_when</span>(</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    dist_feat <span class="sc">&lt;=</span> feat_cutoff <span class="sc">&amp;</span> dist_target <span class="sc">&lt;=</span> target_cutoff <span class="sc">~</span> <span class="st">"Both ordinary"</span>,</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>    dist_feat <span class="sc">&gt;</span>  feat_cutoff <span class="sc">&amp;</span> dist_target <span class="sc">&lt;=</span> target_cutoff <span class="sc">~</span> <span class="st">"Unusual spectrum, ordinary chemistry"</span>,</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>    dist_feat <span class="sc">&gt;</span>  feat_cutoff <span class="sc">&amp;</span> dist_target <span class="sc">&gt;</span>  target_cutoff <span class="sc">~</span> <span class="st">"Unusual spectrum and chemistry"</span>,</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span>                                                    <span class="sc">~</span> <span class="st">"Ordinary spectrum, extreme chemistry"</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>  ))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(dists, <span class="fu">aes</span>(dist_feat, dist_target, <span class="at">colour =</span> region)) <span class="sc">+</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="fl">2.5</span>, <span class="at">alpha =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> feat_cutoff, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> target_cutoff, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> <span class="fu">filter</span>(dists, region <span class="sc">!=</span> <span class="st">"Both ordinary"</span>),</span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">label =</span> smp_id), <span class="at">vjust =</span> <span class="sc">-</span><span class="fl">0.8</span>, <span class="at">size =</span> <span class="dv">3</span>, <span class="at">show.legend =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(</span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Both ordinary"</span>                        <span class="ot">=</span> <span class="st">"grey60"</span>,</span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Unusual spectrum, ordinary chemistry"</span> <span class="ot">=</span> <span class="st">"steelblue"</span>,</span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Unusual spectrum and chemistry"</span>       <span class="ot">=</span> <span class="st">"darkgreen"</span>,</span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Ordinary spectrum, extreme chemistry"</span> <span class="ot">=</span> <span class="st">"firebrick"</span>)) <span class="sc">+</span></span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb44-14"><a href="#cb44-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Mahalanobis distance, feature space (PC scores)"</span>,</span>
+<span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Mahalanobis distance, target space"</span>,</span>
+<span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">colour =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb44-17"><a href="#cb44-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>) <span class="sc">+</span></span>
+<span id="cb44-18"><a href="#cb44-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">colour =</span> <span class="fu">guide_legend</span>(<span class="at">ncol =</span> <span class="dv">2</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="5-outlier-detection_files/figure-html/unnamed-chunk-30-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>dists <span class="sc">|&gt;</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(region <span class="sc">!=</span> <span class="st">"Both ordinary"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(region, <span class="fu">desc</span>(dist_feat))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 7 × 4
+  smp_id dist_feat dist_target region                              
+  &lt;chr&gt;      &lt;dbl&gt;       &lt;dbl&gt; &lt;chr&gt;                               
+1 RT_23       4.04       4.78  Ordinary spectrum, extreme chemistry
+2 RT_21       3.95       3.16  Ordinary spectrum, extreme chemistry
+3 RT_09       3.65       6.35  Ordinary spectrum, extreme chemistry
+4 RT_64       3.42       2.72  Ordinary spectrum, extreme chemistry
+5 RT_69       5.28       1.57  Unusual spectrum, ordinary chemistry
+6 RT_27       4.84       0.723 Unusual spectrum, ordinary chemistry
+7 RT_35       4.70       0.405 Unusual spectrum, ordinary chemistry</code></pre>
+</div>
+</div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
