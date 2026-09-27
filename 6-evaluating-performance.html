@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-26">
+<meta name="dcterms.date" content="2026-09-27">
 
 <title>Evaluating performance – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -111,6 +111,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&amp;family=Source+Code+Pro&amp;display=swap" rel="stylesheet">
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -219,6 +248,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#getting-data" id="toc-getting-data" class="nav-link active" data-scroll-target="#getting-data">Getting data</a></li>
+  <li><a href="#splitting-the-data" id="toc-splitting-the-data" class="nav-link" data-scroll-target="#splitting-the-data">Splitting the data</a></li>
+  <li><a href="#cross-validation-folds" id="toc-cross-validation-folds" class="nav-link" data-scroll-target="#cross-validation-folds">Cross-validation folds</a>
+  <ul class="collapse">
+  <li><a href="#what-vfold_cv-does" id="toc-what-vfold_cv-does" class="nav-link" data-scroll-target="#what-vfold_cv-does">What <code>vfold_cv()</code> does</a></li>
+  <li><a href="#stratification" id="toc-stratification" class="nav-link" data-scroll-target="#stratification">Stratification</a></li>
+  <li><a href="#why-repeat" id="toc-why-repeat" class="nav-link" data-scroll-target="#why-repeat">Why repeat</a></li>
+  <li><a href="#why-the-gain-is-smaller-than-it-looks" id="toc-why-the-gain-is-smaller-than-it-looks" class="nav-link" data-scroll-target="#why-the-gain-is-smaller-than-it-looks">Why the gain is smaller than it looks</a></li>
+  </ul></li>
+  <li><a href="#model" id="toc-model" class="nav-link" data-scroll-target="#model">Model</a></li>
+  <li><a href="#tuning-the-number-of-components" id="toc-tuning-the-number-of-components" class="nav-link" data-scroll-target="#tuning-the-number-of-components">Tuning the number of components</a></li>
+  <li><a href="#choosing-the-number-of-components" id="toc-choosing-the-number-of-components" class="nav-link" data-scroll-target="#choosing-the-number-of-components">Choosing the number of components</a>
+  <ul class="collapse">
+  <li><a href="#the-one-standard-error-rule" id="toc-the-one-standard-error-rule" class="nav-link" data-scroll-target="#the-one-standard-error-rule">The one-standard-error rule</a></li>
+  </ul></li>
+  <li><a href="#final-fit-on-the-test-set" id="toc-final-fit-on-the-test-set" class="nav-link" data-scroll-target="#final-fit-on-the-test-set">Final fit on the test set</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/6-evaluating-performance.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -245,7 +289,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 26, 2026</p>
+      <p class="date">September 27, 2026</p>
     </div>
   </div>
   
@@ -270,6 +314,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">theme_set</span>(<span class="fu">theme_bw</span>())</span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">tidymodels_prefer</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p>References:</p>
+<ul>
+<li><a href="https://www.tmwr.org/resampling.html">Tidy Modeling with R, chapter 10: Resampling for evaluating performance</a></li>
+<li><a href="https://www.tmwr.org/tuning.html">Tidy Modeling with R, chapter 12: Model tuning and the dangers of overfitting</a></li>
+<li><a href="https://rsample.tidymodels.org/reference/vfold_cv.html"><code>rsample::vfold_cv()</code></a> and <a href="https://tune.tidymodels.org/reference/show_best.html"><code>tune::select_by_one_std_err()</code></a></li>
+<li>Breiman, L., Friedman, J., Olshen, R. and Stone, C. (1984). <em>Classification and Regression Trees</em>. Wadsworth.</li>
+<li>Hastie, T., Tibshirani, R. and Friedman, J. (2009). <a href="https://hastie.su.domains/ElemStatLearn/"><em>The Elements of Statistical Learning</em></a>, section 7.10.</li>
+<li>Bengio, Y. and Grandvalet, Y. (2004). <a href="https://www.jmlr.org/papers/v5/grandvalet04a.html">No unbiased estimator of the variance of K-fold cross-validation</a>. <em>Journal of Machine Learning Research</em>, 5, 1089–1105.</li>
+</ul>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>SPECTRA_DIR <span class="ot">=</span> <span class="fu">here</span>(<span class="st">"data/RT_spectra"</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>SOIL_PROP_FILE <span class="ot">=</span> <span class="fu">here</span>(<span class="st">"data/RT_wetchem_soildata.csv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -286,15 +339,62 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="getting-data" class="level2">
 <h2 class="anchored" data-anchor-id="getting-data">Getting data</h2>
+<p><code>RT_44</code> is left out. <code>5-outlier-detection.qmd</code> highlights its spectrum as a candidate outlier.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">prepare_rt</span>(SPECTRA_DIR, SOIL_PROP_FILE)<span class="sc">|&gt;</span> <span class="fu">filter</span>(smp_id <span class="sc">!=</span> <span class="st">"RT_44"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+</section>
+<section id="splitting-the-data" class="level2">
+<h2 class="anchored" data-anchor-id="splitting-the-data">Splitting the data</h2>
+<p>The test set is set aside first. It stays untouched until the last step, <code>last_fit()</code>. Every decision before that, including the number of PLS components, uses the training set only. Otherwise the test score would be optimistic: the model would have been chosen partly because it did well on those same samples.</p>
+<p><code>kennard_stone_split()</code>, defined in <code>R/split.R</code>, chooses the training samples so that they cover the spectral space evenly. It works on PCA scores of the SNV-corrected spectra. It starts from the two most distant samples, then keeps adding the sample furthest from those already chosen. The test samples then fall inside the range the model has seen. <code>initial_split()</code> is the random alternative.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>split <span class="ot">&lt;-</span> <span class="fu">kennard_stone_split</span>(data, <span class="at">prop =</span> <span class="dv">50</span><span class="sc">/</span><span class="dv">70</span>, <span class="at">cols =</span> <span class="fu">starts_with</span>(<span class="st">"wn_"</span>))</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># or</span></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># split &lt;- initial_split(data, prop = 50/70)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+</section>
+<section id="cross-validation-folds" class="level2">
+<h2 class="anchored" data-anchor-id="cross-validation-folds">Cross-validation folds</h2>
+<section id="what-vfold_cv-does" class="level3">
+<h3 class="anchored" data-anchor-id="what-vfold_cv-does">What <code>vfold_cv()</code> does</h3>
+<p>The model has one setting to choose: the number of PLS components. Each candidate value needs a score on samples the model has not seen. The training set cannot give that score. Training error keeps falling as components are added, even after the extra components only fit noise. The test set cannot give it either, because it must stay untouched.</p>
+<p>Cross-validation makes held-out data from the training set itself. <code>vfold_cv()</code> shuffles the 49 training samples and deals them into <code>v = 10</code> groups, called folds, of 4 to 6 samples each. Each fold takes a turn as the assessment set. The model is fitted on the other 9 folds, 43 to 45 samples, and scored on the held-out fold. After 10 rounds, every training sample has been predicted once by a model that did not see it. The 10 fold scores are averaged into one estimate.</p>
+<p><code>tune_grid()</code> runs the whole workflow inside every fold, recipe included. The recipe is prepped on the 9 fitting folds only. Nothing learnt from the held-out fold leaks into the model.</p>
+</section>
+<section id="stratification" class="level3">
+<h3 class="anchored" data-anchor-id="stratification">Stratification</h3>
+<p><code>strata = all_of(TARGET)</code> with <code>breaks = 2</code> splits <code>carbon_tot_perc</code> at its median into a low half and a high half. Samples from each half are then dealt out evenly across the folds, so every fold gets a mix of low-carbon and high-carbon soils. Without this, a fold of 5 samples could hold only high-carbon soils by chance. Its score would then say more about that bad luck than about the model. Two bins is a coarse split. With only 4 to 6 samples per fold, a finer one would add little. The split uses the raw values, before <code>step_log()</code>. A median split gives the same two halves on either scale. <code>all_of()</code> tells <code>vfold_cv()</code> that <code>TARGET</code> holds a column name as a string. A bare <code>strata = TARGET</code> still works, but gives a deprecation warning.</p>
+</section>
+<section id="why-repeat" class="level3">
+<h3 class="anchored" data-anchor-id="why-repeat">Why repeat</h3>
+<p>A single 10-fold run depends on one random way of dealing the samples into folds. Shuffle again and the estimate changes. Each fold scores only 4 to 6 samples, so the RMSE of a single fold is very noisy. <code>repeats = 10</code> runs the whole 10-fold procedure 10 times, each time with a new shuffle. That gives 100 fold scores per candidate instead of 10, and their mean is more stable.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Standard error and the central limit theorem
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Take <span class="math inline">\(n\)</span> independent measurements, each with standard deviation <span class="math inline">\(\sigma\)</span>. Their mean has a standard deviation of <span class="math inline">\(\sigma / \sqrt{n}\)</span>. This is the standard error of the mean. The central limit theorem adds that the mean is approximately normally distributed as <span class="math inline">\(n\)</span> grows, whatever the shape of the individual measurements. So the mean ± 2 standard errors gives a rough 95% range for the true value.</p>
+<p>The gain follows a square root. 4 times more measurements halve the standard error. 100 fold scores instead of 10 cut it by <span class="math inline">\(\sqrt{10} \approx 3.2\)</span>.</p>
+<p><code>collect_metrics()</code> reports exactly this. Its <code>std_err</code> column is the standard deviation of the fold scores divided by <span class="math inline">\(\sqrt{n}\)</span>, with <code>n = 100</code> here.</p>
+</div>
+</div>
+</section>
+<section id="why-the-gain-is-smaller-than-it-looks" class="level3">
+<h3 class="anchored" data-anchor-id="why-the-gain-is-smaller-than-it-looks">Why the gain is smaller than it looks</h3>
+<p>The <span class="math inline">\(\sigma / \sqrt{n}\)</span> formula needs independent measurements. The 100 fold scores are not independent:</p>
+<ul>
+<li>Within one repeat, any two fitting sets share 8 of their 9 folds, about 90% of their samples. The models they produce are very similar.</li>
+<li>Across repeats, the same 49 samples are reshuffled. No new soil ever enters.</li>
+</ul>
+<p>Repeating averages away the noise that comes from how the folds were dealt. It cannot remove the noise that comes from which 49 soils were collected. A different set of 49 soils from the same region would give a different curve. No amount of repeating on the current set shows that.</p>
+<p>The effective number of independent measurements is therefore much smaller than 100, and <code>std_err</code> is too small. Read it as a lower bound on the real uncertainty. It is still useful to compare candidates with each other, because they all use the same folds. There is no simple fix. Bengio and Grandvalet (2004) show that no unbiased estimator of the variance of k-fold cross-validation exists.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -302,10 +402,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">training</span>(split),</span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">v =</span> <span class="dv">10</span>,</span>
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">repeats =</span> <span class="dv">10</span>,</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">strata =</span> TARGET,</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">strata =</span> <span class="fu">all_of</span>(TARGET),</span>
 <span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">breaks =</span> <span class="dv">2</span></span>
 <span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+</section>
+</section>
+<section id="model" class="level2">
+<h2 class="anchored" data-anchor-id="model">Model</h2>
+<p>The recipe is the one <code>4-feature-engineering.qmd</code> builds step by step, here with <code>carbon_tot_perc</code> as the outcome.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>spc_cols <span class="ot">&lt;-</span> <span class="fu">names</span>(data)[<span class="fu">startsWith</span>(<span class="fu">names</span>(data), <span class="st">"wn_"</span>)]</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>meta_cols <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="fu">names</span>(data), <span class="fu">c</span>(TARGET, spc_cols))</span>
@@ -319,19 +424,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_snv</span>() <span class="sc">|&gt;</span> </span>
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_sg</span>(<span class="at">w =</span> SG_W, <span class="at">p =</span> SG_P, <span class="at">m =</span> SG_M)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p><code>pls()</code> specifies a partial least squares regression, fitted with the <code>mixOmics</code> engine. <code>num_comp = tune()</code> leaves the number of components open. <code>tune_grid()</code> fills it in later.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>pls_spec <span class="ot">&lt;-</span> <span class="fu">pls</span>(<span class="at">num_comp =</span> <span class="fu">tune</span>()) <span class="sc">|&gt;</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"mixOmics"</span>) <span class="sc">|&gt;</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"regression"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p>A workflow bundles the recipe and the model. Both are then fitted together inside each fold.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>wf <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">|&gt;</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(rec) <span class="sc">|&gt;</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(pls_spec)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+</section>
+<section id="tuning-the-number-of-components" class="level2">
+<h2 class="anchored" data-anchor-id="tuning-the-number-of-components">Tuning the number of components</h2>
+<p>The grid lists the candidate values: 2 to 20 components, 19 candidates.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>num_comp_grid <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">num_comp =</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">20</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p><code>tune_grid()</code> fits the workflow for every candidate in every fold: 19 candidates × 100 folds, 1,900 fits. Each fit is scored on its held-out fold with the default regression metrics, RMSE and R².</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>tune_res <span class="ot">&lt;-</span> <span class="fu">tune_grid</span>(</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  wf,</span>
@@ -339,6 +451,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">grid =</span> num_comp_grid</span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p><code>collect_metrics()</code> gives one row per candidate and metric. <code>mean</code> is the average of the 100 fold scores. <code>n</code> is the number of fold scores. <code>std_err</code> is their standard deviation divided by <span class="math inline">\(\sqrt{n}\)</span>, as described above. RMSE is in log10 units, because <code>step_log()</code> transformed the outcome.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_metrics</span>(tune_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -358,6 +471,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 # ℹ 28 more rows</code></pre>
 </div>
 </div>
+<p><code>autoplot()</code> draws the mean of each metric against the number of components.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">autoplot</span>(tune_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
@@ -368,6 +482,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
+<p>The plot below adds error bars of ±1 standard error. RMSE falls quickly over the first few components. It then rises again as the extra components start to fit noise in the fitting folds. The error bars show which differences between neighbouring candidates are within the noise.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_metrics</span>(tune_res) <span class="sc">|&gt;</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> num_comp, <span class="at">y =</span> mean)) <span class="sc">+</span></span>
@@ -385,6 +500,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
+</section>
+<section id="choosing-the-number-of-components" class="level2">
+<h2 class="anchored" data-anchor-id="choosing-the-number-of-components">Choosing the number of components</h2>
+<p><code>select_best()</code> returns the candidate with the lowest mean RMSE.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>best_rmse <span class="ot">&lt;-</span> <span class="fu">select_best</span>(tune_res, <span class="at">metric =</span> <span class="st">"rmse"</span>)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>best_rmse</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -395,6 +514,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 1        7 pre0_mod06_post0</code></pre>
 </div>
 </div>
+<section id="the-one-standard-error-rule" class="level3">
+<h3 class="anchored" data-anchor-id="the-one-standard-error-rule">The one-standard-error rule</h3>
+<p><code>select_best()</code> treats the smallest mean as the winner, even when a simpler candidate scores almost the same. With PLS, fewer components means a simpler model. A simpler model is usually more stable on new samples, and less likely to have fitted quirks of the training set. The one-standard-error rule, from Breiman et al.&nbsp;(1984) and described in Hastie et al.&nbsp;(2009), makes that trade-off explicit. It picks the simplest candidate whose score is within one standard error of the best.</p>
+<p><code>select_by_one_std_err(tune_res, metric = "rmse", num_comp)</code> does this in 5 steps:</p>
+<ol type="1">
+<li>It keeps only the <code>rmse</code> rows of <code>collect_metrics(tune_res)</code>.</li>
+<li>It finds the candidate with the lowest mean RMSE. This is the one <code>select_best()</code> returns.</li>
+<li>It computes a bound: the best mean plus the <code>std_err</code> of the best candidate. Only the standard error of the best candidate is used, not that of each candidate.</li>
+<li>It keeps every candidate whose mean RMSE is at or below the bound. The best candidate always qualifies.</li>
+<li>It sorts those candidates by the arguments passed after <code>metric</code>, here <code>num_comp</code> in ascending order, and returns the first row.</li>
+</ol>
+<p>The last argument defines what “simplest” means. The function cannot guess it. For PLS, fewer components is simpler, so <code>num_comp</code> sorts in the right direction. For a penalised regression, a larger penalty is simpler, and the call would need <code>desc(penalty)</code> instead.</p>
+<p>The rule inherits the weakness of <code>std_err</code>. That value is too small here, as explained above, so the bound is tight. The rule stays closer to <code>select_best()</code> than it would with a realistic standard error.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>best_1se <span class="ot">&lt;-</span> <span class="fu">select_by_one_std_err</span>(tune_res, <span class="at">metric =</span> <span class="st">"rmse"</span>, num_comp)</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>best_1se</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -405,17 +537,59 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 1        7 pre0_mod06_post0</code></pre>
 </div>
 </div>
+<p>The chunk below applies the same steps by hand, so each value is visible.</p>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>final_wf <span class="ot">&lt;-</span> wf <span class="sc">|&gt;</span> <span class="fu">finalize_workflow</span>(best_1se)</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co"># or manually</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># final_wf &lt;- wf |&gt; finalize_workflow(tibble(num_comp = 10))</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>rmse_res <span class="ot">&lt;-</span> <span class="fu">collect_metrics</span>(tune_res) <span class="sc">|&gt;</span> <span class="fu">filter</span>(.metric <span class="sc">==</span> <span class="st">"rmse"</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>best_row <span class="ot">&lt;-</span> rmse_res <span class="sc">|&gt;</span> <span class="fu">slice_min</span>(mean, <span class="at">n =</span> <span class="dv">1</span>, <span class="at">with_ties =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>bound    <span class="ot">&lt;-</span> best_row<span class="sc">$</span>mean <span class="sc">+</span> best_row<span class="sc">$</span>std_err</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>rmse_res <span class="sc">|&gt;</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">within_bound =</span> mean <span class="sc">&lt;=</span> bound) <span class="sc">|&gt;</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(num_comp, mean, std_err, within_bound)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 19 × 4
+   num_comp  mean std_err within_bound
+      &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;lgl&gt;       
+ 1        2 0.192 0.00559 FALSE       
+ 2        3 0.174 0.00471 FALSE       
+ 3        4 0.163 0.00512 FALSE       
+ 4        5 0.155 0.00573 FALSE       
+ 5        6 0.142 0.00528 FALSE       
+ 6        7 0.137 0.00497 TRUE        
+ 7        8 0.141 0.00614 TRUE        
+ 8        9 0.144 0.00693 FALSE       
+ 9       10 0.151 0.00756 FALSE       
+10       11 0.154 0.00759 FALSE       
+11       12 0.159 0.00800 FALSE       
+12       13 0.164 0.00841 FALSE       
+13       14 0.170 0.00847 FALSE       
+14       15 0.171 0.00860 FALSE       
+15       16 0.173 0.00881 FALSE       
+16       17 0.177 0.00910 FALSE       
+17       18 0.177 0.00935 FALSE       
+18       19 0.179 0.00976 FALSE       
+19       20 0.180 0.0102  FALSE       </code></pre>
 </div>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>final_res <span class="ot">&lt;-</span> final_wf <span class="sc">|&gt;</span> <span class="fu">last_fit</span>(split)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p>Here <code>select_best()</code> picks 7 components and the one-standard-error rule picks 7. When the two agree, the table shows how close the nearest simpler candidate came to the bound.</p>
+<p><code>finalize_workflow()</code> writes the chosen value into the workflow in place of <code>tune()</code>. The commented line shows how to set a value by hand, for example after reading the plot.</p>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_metrics</span>(final_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>final_wf <span class="ot">&lt;-</span> wf <span class="sc">|&gt;</span> <span class="fu">finalize_workflow</span>(best_1se)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co"># or manually</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co"># final_wf &lt;- wf |&gt; finalize_workflow(tibble(num_comp = 10))</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="final-fit-on-the-test-set" class="level2">
+<h2 class="anchored" data-anchor-id="final-fit-on-the-test-set">Final fit on the test set</h2>
+<p><code>last_fit()</code> fits the finalised workflow once on the whole training set. It then predicts the test set and scores it. This is the first time the test set is used. No choice was made with it, so its score is a fair estimate of how the model does on new samples.</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>final_res <span class="ot">&lt;-</span> final_wf <span class="sc">|&gt;</span> <span class="fu">last_fit</span>(split)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The test RMSE is in log10 units, like the cross-validation RMSE, so the two compare directly. A test RMSE close to the cross-validation mean suggests the tuning estimate was realistic. The test set is small, so some difference either way is expected.</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_metrics</span>(final_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 4
   .metric .estimator .estimate .config        
@@ -424,8 +598,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 2 rsq     standard       0.933 pre0_mod0_post0</code></pre>
 </div>
 </div>
+<p><code>collect_predictions()</code> gives one row per test sample: the observed value and the prediction <code>.pred</code>, both in log10 units.</p>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_predictions</span>(final_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_predictions</span>(final_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 20 × 5
       .pred id               carbon_tot_perc  .row .config        
@@ -452,17 +627,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 20  0.216   train/test split          0.283     58 pre0_mod0_post0</code></pre>
 </div>
 </div>
+<p>Points on the dashed line are perfect predictions. <code>coord_obs_pred()</code> puts both axes on the same scale, so the distance from the line reads the same in either direction.</p>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_predictions</span>(final_res) <span class="sc">|&gt;</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> .data[[TARGET]], <span class="at">y =</span> .pred)) <span class="sc">+</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">lty =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Observed carbon_tot_perc (%)"</span>, <span class="at">y =</span> <span class="st">"carbon_tot_perc (%)"</span>) <span class="sc">+</span></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_obs_pred</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_predictions</span>(final_res) <span class="sc">|&gt;</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> .data[[TARGET]], <span class="at">y =</span> .pred)) <span class="sc">+</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">lty =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Observed log10(carbon_tot_perc)"</span>, <span class="at">y =</span> <span class="st">"Predicted log10(carbon_tot_perc)"</span>) <span class="sc">+</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_obs_pred</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="6-evaluating-performance_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
+<p><img src="6-evaluating-performance_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
 </figure>
 </div>
 </div>

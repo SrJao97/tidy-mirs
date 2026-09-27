@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-26">
+<meta name="dcterms.date" content="2026-09-27">
 
 <title>Preparing OSSL – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -213,8 +213,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#the-open-soil-spectral-library" id="toc-the-open-soil-spectral-library" class="nav-link active" data-scroll-target="#the-open-soil-spectral-library">The Open Soil Spectral Library</a>
+  <ul class="collapse">
+  <li><a href="#how-ossl-is-distributed" id="toc-how-ossl-is-distributed" class="nav-link" data-scroll-target="#how-ossl-is-distributed">How OSSL is distributed</a></li>
+  <li><a href="#column-names" id="toc-column-names" class="nav-link" data-scroll-target="#column-names">Column names</a></li>
+  </ul></li>
+  <li><a href="#why-exchangeable-potassium" id="toc-why-exchangeable-potassium" class="nav-link" data-scroll-target="#why-exchangeable-potassium">Why exchangeable potassium</a></li>
+  <li><a href="#downloading-the-library" id="toc-downloading-the-library" class="nav-link" data-scroll-target="#downloading-the-library">Downloading the library</a></li>
+  <li><a href="#detection-limit" id="toc-detection-limit" class="nav-link" data-scroll-target="#detection-limit">Detection limit</a></li>
+  <li><a href="#building-the-working-sample" id="toc-building-the-working-sample" class="nav-link" data-scroll-target="#building-the-working-sample">Building the working sample</a>
+  <ul class="collapse">
+  <li><a href="#line-by-line" id="toc-line-by-line" class="nav-link" data-scroll-target="#line-by-line">Line by line</a></li>
+  </ul></li>
+  <li><a href="#scaling-up" id="toc-scaling-up" class="nav-link" data-scroll-target="#scaling-up">Scaling up</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/7-preparing-ossl.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -239,7 +257,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 26, 2026</p>
+      <p class="date">September 27, 2026</p>
     </div>
   </div>
   
@@ -255,33 +273,98 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>OSSL reference: https://docs.soilspectroscopy.org/</p>
+<section id="the-open-soil-spectral-library" class="level2">
+<h2 class="anchored" data-anchor-id="the-open-soil-spectral-library">The Open Soil Spectral Library</h2>
+<p>The RT dataset used so far has 70 samples. That is enough to learn the workflow, but not enough to build a model that works on soils from other places. The <a href="https://docs.soilspectroscopy.org/">Open Soil Spectral Library (OSSL)</a> is a much larger, public alternative.</p>
+<p>OSSL is compiled by the <a href="https://soilspectroscopy.org/">Soil Spectroscopy for Global Good</a> initiative. It brings together soil spectral libraries from many sources, including the USDA NRCS Kellogg Soil Survey Laboratory (KSSL), ICRAF-ISRIC, the Africa Soil Information Service (AfSIS) and LUCAS. It holds more than 135,000 entries, with MIR, VisNIR and NIR spectra and the matching wet chemistry. Each source used its own column names and units. OSSL maps them all onto one naming scheme, so the whole library can be used as one table. <a href="https://doi.org/10.1371/journal.pone.0296545">Safanelli et al.&nbsp;(2025)</a> describe how it was built.</p>
+<section id="how-ossl-is-distributed" class="level3">
+<h3 class="anchored" data-anchor-id="how-ossl-is-distributed">How OSSL is distributed</h3>
+<p>OSSL is distributed as static files in a public Google Cloud Storage bucket. The <a href="https://docs.soilspectroscopy.org/db-access.html">database access page</a> lists them. There is one file for the whole library, or separate files for site data, lab data, MIR spectra and VisNIR spectra. Each comes as compressed CSV (<code>.csv.gz</code>) or as a <code>qs</code> file for R. The static files can only be downloaded whole. An experimental API allows filtered queries.</p>
+<p>Each file comes at two levels:</p>
+<ul>
+<li><strong>Level 0 (L0)</strong> keeps each property as measured by its original analytical method.</li>
+<li><strong>Level 1 (L1)</strong> converts properties measured with different methods to a common reference method, using published transformation rules.</li>
+</ul>
+<p>This page uses L0, so every Kex value below comes from the same laboratory method.</p>
+</section>
+<section id="column-names" class="level3">
+<h3 class="anchored" data-anchor-id="column-names">Column names</h3>
+<p>Every column name follows the pattern <code>concept.method_unit_datatype</code>, described on the <a href="https://docs.soilspectroscopy.org/db-desc.html">database description page</a>. For example:</p>
+<ul>
+<li><code>id.layer_uuid_txt</code> is the unique identifier of a soil layer, as text.</li>
+<li><code>k.ext_usda.a725_cmolc.kg</code> is extractable potassium, measured with USDA method A725, in cmol(+)/kg. Method A725 displaces exchangeable potassium with 1 M ammonium acetate at pH 7.0.</li>
+<li><code>scan_mir.600_abs</code> is the MIR absorbance, in log10 units, at 600 cm⁻¹. MIR columns run from 600 to 4000 cm⁻¹, every 2 cm⁻¹.</li>
+</ul>
+</section>
+</section>
+<section id="why-exchangeable-potassium" class="level2">
+<h2 class="anchored" data-anchor-id="why-exchangeable-potassium">Why exchangeable potassium</h2>
+<p>This course uses exchangeable potassium (Kex) as its OSSL example because of its role after nuclear accidents. Caesium and potassium behave alike in soil and in plants. Plant roots take up radiocaesium through the same pathways as potassium. When a soil holds plenty of exchangeable potassium, crops take up less radiocaesium. Potassium fertilisation is therefore a standard countermeasure on contaminated farmland, as used after the Chernobyl and Fukushima accidents. Planning it well needs Kex values for many fields, quickly. Wet chemistry is too slow and too costly for that. MIR spectroscopy is fast and cheap once a calibration model exists.</p>
+<p><a href="https://doi.org/10.1016/j.aiia.2022.10.001">Albinet et al.&nbsp;(2022)</a> trained such models on about 40,000 KSSL MIR spectra with Kex measured by the same 1 M ammonium acetate method. A convolutional neural network raised R² from 0.64, for a PLS baseline, to 0.79. This course stays with PLS and a small subset of the data. It is a simple, complete example to build on.</p>
+</section>
+<section id="downloading-the-library" class="level2">
+<h2 class="anchored" data-anchor-id="downloading-the-library">Downloading the library</h2>
+<p><code>src</code> points to the whole library at level 0, as one compressed CSV. <code>dest</code> is where the working sample will be saved, inside the course <code>data/</code> folder.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>src <span class="ot">=</span> <span class="st">"https://storage.googleapis.com/soilspec4gg-public/ossl_all_L0_v1.2.csv.gz"</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>dest <span class="ot">=</span> <span class="fu">here</span>(<span class="st">"data"</span>, <span class="st">"ossl_mir_k_sample.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p><code>read_csv()</code> downloads and reads the file in one step. The file is large. This takes a while and needs plenty of memory. You only need to run this page once. <code>8-kex-ossl-pipeline.qmd</code> reads the small file saved at the end, not the full library.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">=</span> <span class="fu">read_csv</span>(src)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+</section>
+<section id="detection-limit" class="level2">
+<h2 class="anchored" data-anchor-id="detection-limit">Detection limit</h2>
+<p>A laboratory method cannot reliably measure values below its method detection limit (MDL). For Kex measured with 1 M ammonium acetate at pH 7, as in KSSL, the MDL is 0.06 cmol(+)/kg. Values close to it are uncertain, so samples below a threshold are dropped.</p>
+<p><a href="https://doi.org/10.1016/j.aiia.2022.10.001">Albinet et al.&nbsp;(2022)</a> set that threshold at 0.12 cmol(+)/kg, twice the MDL. It is low enough to keep 0.14 cmol(+)/kg in the data. In the Fukushima area, that Kex level kept the radiocaesium concentration of 99% of brown rice below the target level. See section 2 of the paper for the full reasoning. <code>kex_threshold</code> holds this threshold.</p>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kex Minimum Detection Level </span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Ref: https://www.sciencedirect.com/science/article/pii/S2589721722000186</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>kex_MDL <span class="ot">&lt;-</span> <span class="fl">0.12</span> <span class="co"># cmol(+).kg−1</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kex threshold: 2 × MDL (MDL = 0.06 cmol(+)/kg)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>kex_threshold <span class="ot">&lt;-</span> <span class="fl">0.12</span> <span class="co"># cmol(+).kg−1</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+</section>
+<section id="building-the-working-sample" class="level2">
+<h2 class="anchored" data-anchor-id="building-the-working-sample">Building the working sample</h2>
+<p>One pipe turns the full library into the working sample and saves it. Each <code>|&gt;</code> passes the result of one line to the next.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>data <span class="sc">|&gt;</span> </span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(k.ext_usda.a725_cmolc.kg)) <span class="sc">|&gt;</span> </span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="fu">if_all</span>(<span class="fu">starts_with</span>(<span class="st">"scan_mir"</span>), <span class="sc">~</span> <span class="sc">!</span><span class="fu">is.na</span>(.x))) <span class="sc">|&gt;</span> </span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(k.ext_usda.a725_cmolc.kg <span class="sc">&gt;=</span> kex_MDL) <span class="sc">|&gt;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(k.ext_usda.a725_cmolc.kg <span class="sc">&gt;=</span> kex_threshold) <span class="sc">|&gt;</span></span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">slice_sample</span>(<span class="at">prop=</span><span class="fl">0.1</span>) <span class="sc">|&gt;</span> </span>
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(id.layer_uuid_txt, k.ext_usda.a725_cmolc.kg, <span class="fu">starts_with</span>(<span class="st">"scan_mir"</span>)) <span class="sc">|&gt;</span></span>
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rename_with</span>(<span class="sc">~</span> <span class="fu">str_replace</span>(.x, <span class="st">"scan_mir</span><span class="sc">\\</span><span class="st">.(</span><span class="sc">\\</span><span class="st">d+)_abs"</span>, <span class="st">"wn_</span><span class="sc">\\</span><span class="st">1"</span>), <span class="at">.cols =</span> <span class="fu">starts_with</span>(<span class="st">"scan_mir"</span>)) <span class="sc">|&gt;</span> </span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rename</span>(<span class="at">smp_id =</span> id.layer_uuid_txt, <span class="at">kex =</span> k.ext_usda.a725_cmolc.kg) <span class="sc">|&gt;</span></span>
 <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">write_rds</span>(dest, <span class="at">compress =</span> <span class="st">"xz"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<section id="line-by-line" class="level3">
+<h3 class="anchored" data-anchor-id="line-by-line">Line by line</h3>
+<ul>
+<li><code>set.seed(123)</code> fixes the random number generator. <code>slice_sample()</code> then draws the same samples every time the page runs.</li>
+<li><code>filter(!is.na(k.ext_usda.a725_cmolc.kg))</code> keeps only rows where Kex was measured.</li>
+<li><code>filter(if_all(starts_with("scan_mir"), ~ !is.na(.x)))</code> keeps only rows with a complete MIR spectrum. <code>starts_with("scan_mir")</code> selects every MIR column. <code>~ !is.na(.x)</code> is a short way to write a function: <code>.x</code> stands for each column in turn, and the function returns <code>TRUE</code> where a value is present. <code>if_all()</code> keeps a row only if the function returns <code>TRUE</code> for every selected column. This drops rows that have only a VisNIR spectrum, or none.</li>
+<li><code>filter(k.ext_usda.a725_cmolc.kg &gt;= kex_threshold)</code> drops values below the detection threshold, twice the MDL.</li>
+<li><code>slice_sample(prop = 0.1)</code> keeps a random 10% of the remaining rows. That gives 4,548 samples, which is enough to work with and small enough to fit a model quickly in class.</li>
+<li><code>select(id.layer_uuid_txt, k.ext_usda.a725_cmolc.kg, starts_with("scan_mir"))</code> keeps only the columns the model needs: the sample identifier, the target and the MIR spectrum. It drops everything else, such as site data and the other soil properties.</li>
+<li><code>rename_with(~ str_replace(.x, "scan_mir\\.(\\d+)_abs", "wn_\\1"), .cols = starts_with("scan_mir"))</code> renames every MIR column, for example <code>scan_mir.600_abs</code> to <code>wn_600</code>. <code>rename_with()</code> applies a function to the names of the columns in <code>.cols</code>. <code>str_replace()</code> uses a regular expression. <code>\\.</code> matches a literal dot. <code>(\\d+)</code> captures the digits of the wavenumber. <code>\\1</code> puts those digits back in the new name. The backslashes are doubled because R strings need <code>\\</code> to write one <code>\</code>. The new names match those of the RT data. The recipe steps and plotting functions from earlier pages then work unchanged.</li>
+<li><code>rename(smp_id = id.layer_uuid_txt, kex = k.ext_usda.a725_cmolc.kg)</code> gives the two remaining columns short names. The new name goes on the left of <code>=</code>, the old name on the right.</li>
+<li><code>write_rds(dest, compress = "xz")</code> saves the result as an R object. <code>xz</code> compression is slow, but it gives the smallest file: about 20 MB here.</li>
+</ul>
+</section>
+</section>
+<section id="scaling-up" class="level2">
+<h2 class="anchored" data-anchor-id="scaling-up">Scaling up</h2>
+<p>The sample is deliberately small. To go further:</p>
+<ul>
+<li>Change <code>prop</code> in <code>slice_sample()</code>, or remove the line, to use all of the roughly 45,000 samples that pass the filters.</li>
+<li>Replace <code>k.ext_usda.a725_cmolc.kg</code> with another property, and set a detection level that suits its method.</li>
+<li>Filter on <code>dataset.code_ascii_txt</code> to keep or compare particular source libraries.</li>
+<li>Use the level 1 file to combine properties measured with different methods.</li>
+</ul>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -692,7 +775,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>   
     <div class="nav-footer-center">
       &nbsp;
-    <div class="toc-actions"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/7-preparing-ossl.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/7-preparing-ossl.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       &nbsp;
     </div>
