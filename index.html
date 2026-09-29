@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-26">
+<meta name="dcterms.date" content="2026-09-29">
 
 <title>Soil mid-infrared spectroscopy – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -44,7 +44,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-a9c94084e156453ce75ecc8ff7b2041c.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-f9d7f45405ba9184d9c115d708520f30.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-4c708733c4bd93f9cc044033404bda8f.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -119,60 +119,99 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text">Home</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./0-gettting-setup.html" class="sidebar-item-text sidebar-link">
+  <a href="./0-getting-setup.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Getting set up</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./1-full-pipeline.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">The full pipeline</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./2-loading-data.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Loading spectral data</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./3-eda.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Exploratory Data Analysis</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./4-feature-engineering.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Features engineering</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./5-outlier-detection.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Outlier detection</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./6-evaluating-performance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Evaluating performance</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Worked example</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./7-preparing-ossl.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Preparing OSSL</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./8-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Predicting Exchangeable Potassium using OSSL</span></a>
   </div>
 </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Going further</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./howto/tuning-savitzky-golay.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Does the Savitzky-Golay setting matter?</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
     </ul>
     </div>
 </nav>
@@ -185,7 +224,10 @@ ul.task-list li input[type="checkbox"] {
   <ul>
   <li><a href="#why-tidyverse-and-tidymodels" id="toc-why-tidyverse-and-tidymodels" class="nav-link active" data-scroll-target="#why-tidyverse-and-tidymodels">Why tidyverse and tidymodels</a></li>
   <li><a href="#how-this-course-teaches" id="toc-how-this-course-teaches" class="nav-link" data-scroll-target="#how-this-course-teaches">How this course teaches</a></li>
-  <li><a href="#the-course" id="toc-the-course" class="nav-link" data-scroll-target="#the-course">The course</a></li>
+  <li><a href="#the-course" id="toc-the-course" class="nav-link" data-scroll-target="#the-course">The course</a>
+  <ul class="collapse">
+  <li><a href="#going-further" id="toc-going-further" class="nav-link" data-scroll-target="#going-further">Going further</a></li>
+  </ul></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/index.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -212,7 +254,7 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 26, 2026</p>
+      <p class="date">September 29, 2026</p>
     </div>
   </div>
   
@@ -246,7 +288,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="the-course" class="level2">
 <h2 class="anchored" data-anchor-id="the-course">The course</h2>
 <ol type="1">
-<li><a href="./0-gettting-setup.html">Getting set up</a>: install R, Positron, and the packages this course uses.</li>
+<li><a href="./0-getting-setup.html">Getting set up</a>: install R, Positron, and the packages this course uses.</li>
 <li><a href="./1-full-pipeline.html">The full pipeline</a>: load, preprocess, tune, test, and predict, once, end to end, before any of it gets explained.</li>
 <li><a href="./2-loading-data.html">Loading spectral data</a>: read a folder of OPUS files and a wet chemistry CSV into one tibble.</li>
 <li><a href="./3-eda.html">Exploratory data analysis</a>: look at the spectra and the soil properties before modelling anything.</li>
@@ -256,9 +298,16 @@ ul.task-list li input[type="checkbox"] {
 <li><a href="./7-preparing-ossl.html">Preparing OSSL</a>: pull a working sample from the Open Soil Spectral Library.</li>
 <li><a href="./8-kex-ossl-pipeline.html">Predicting exchangeable potassium using OSSL</a>: the same pipeline, run end to end on a public, global dataset.</li>
 </ol>
-<p>Start at <a href="./0-gettting-setup.html">Getting set up</a> if your R environment isn’t ready yet.</p>
+<section id="going-further" class="level3">
+<h3 class="anchored" data-anchor-id="going-further">Going further</h3>
+<p>These pages are not part of the main path. Each one assumes the pages it links to.</p>
+<ul>
+<li><a href="./howto/tuning-savitzky-golay.html">Does the Savitzky-Golay setting matter?</a>: compare a few contrasting Savitzky-Golay settings under repeated cross-validation.</li>
+</ul>
+<p>Start at <a href="./0-getting-setup.html">Getting set up</a> if your R environment isn’t ready yet.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

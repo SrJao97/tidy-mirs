@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-26">
+<meta name="dcterms.date" content="2026-09-29">
 
-<title>Loading spectral data – Soil mid-infrared spectroscopy with tidymodels</title>
+<title>Getting set up – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -123,7 +123,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./0-getting-setup.html">Foundations</a></li><li class="breadcrumb-item"><a href="./2-loading-data.html">Loading spectral data</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./0-getting-setup.html">Foundations</a></li><li class="breadcrumb-item"><a href="./0-getting-setup.html">Getting set up</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -165,7 +165,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./0-getting-setup.html" class="sidebar-item-text sidebar-link">
+  <a href="./0-getting-setup.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Getting set up</span></a>
   </div>
 </li>
@@ -177,7 +177,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./2-loading-data.html" class="sidebar-item-text sidebar-link active">
+  <a href="./2-loading-data.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Loading spectral data</span></a>
   </div>
 </li>
@@ -257,25 +257,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#loading-and-joining-everything-in-one-call" id="toc-loading-and-joining-everything-in-one-call" class="nav-link active" data-scroll-target="#loading-and-joining-everything-in-one-call">Loading and joining everything in one call</a></li>
-  <li><a href="#unpacking-prepare_rt" id="toc-unpacking-prepare_rt" class="nav-link" data-scroll-target="#unpacking-prepare_rt">Unpacking <code>prepare_rt()</code></a>
-  <ul class="collapse">
-  <li><a href="#reading-opus-spectra-files" id="toc-reading-opus-spectra-files" class="nav-link" data-scroll-target="#reading-opus-spectra-files">Reading OPUS spectra files</a></li>
-  <li><a href="#averaging-replicate-scans" id="toc-averaging-replicate-scans" class="nav-link" data-scroll-target="#averaging-replicate-scans">Averaging replicate scans</a></li>
-  <li><a href="#loading-soil-properties" id="toc-loading-soil-properties" class="nav-link" data-scroll-target="#loading-soil-properties">Loading soil properties</a></li>
-  <li><a href="#joining-spectra-and-soil-properties" id="toc-joining-spectra-and-soil-properties" class="nav-link" data-scroll-target="#joining-spectra-and-soil-properties">Joining spectra and soil properties</a></li>
-  </ul></li>
-  <li><a href="#digging-further" id="toc-digging-further" class="nav-link" data-scroll-target="#digging-further">Digging further</a></li>
+  <li><a href="#install-r" id="toc-install-r" class="nav-link active" data-scroll-target="#install-r">Install R</a></li>
+  <li><a href="#install-positron" id="toc-install-positron" class="nav-link" data-scroll-target="#install-positron">Install Positron</a></li>
+  <li><a href="#positron-keyboard-shortcuts" id="toc-positron-keyboard-shortcuts" class="nav-link" data-scroll-target="#positron-keyboard-shortcuts">Positron keyboard shortcuts</a></li>
+  <li><a href="#get-the-course-materials" id="toc-get-the-course-materials" class="nav-link" data-scroll-target="#get-the-course-materials">Get the course materials</a></li>
+  <li><a href="#install-the-r-packages" id="toc-install-the-r-packages" class="nav-link" data-scroll-target="#install-the-r-packages">Install the R packages</a></li>
+  <li><a href="#check-everything-works" id="toc-check-everything-works" class="nav-link" data-scroll-target="#check-everything-works">Check everything works</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/2-loading-data.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/0-getting-setup.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./0-getting-setup.html">Foundations</a></li><li class="breadcrumb-item"><a href="./2-loading-data.html">Loading spectral data</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./0-getting-setup.html">Foundations</a></li><li class="breadcrumb-item"><a href="./0-getting-setup.html">Getting set up</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Loading spectral data</h1>
-<p class="subtitle lead">Read a folder of OPUS files and a wet chemistry CSV into one tibble.</p>
+<h1 class="title">Getting set up</h1>
+<p class="subtitle lead">Install R, Positron, and the packages this course uses.</p>
 </div>
 
 
@@ -292,7 +289,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 26, 2026</p>
+      <p class="date">September 29, 2026</p>
     </div>
   </div>
   
@@ -304,180 +301,130 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p><code>1-full-pipeline.qmd</code> already called <code>prepare_rt()</code> once, to get moving. This page opens that call up. It loads spectra and soil chemistry for this dataset’s soil samples. It turns them into the single tibble every later page in this course starts from. <code>source()</code> runs a plain R script and adds what it defines to your session, the job <code>import</code> does in Python. <code>read_opus_tbl()</code> and <code>prepare_rt()</code>, the two functions this page uses, live in <code>R/io.R</code> and <code>R/prepare_data.R</code>.</p>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"io.R"</span>))</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"prepare_data.R"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="install-r" class="level2">
+<h2 class="anchored" data-anchor-id="install-r">Install R</h2>
+<p>Download R 4.4 or later from <a href="https://cloud.r-project.org">CRAN</a> and run the installer for your platform (Windows, macOS, Linux). This project was built against R 4.5.3. Any recent 4.x release will work.</p>
+</section>
+<section id="install-positron" class="level2">
+<h2 class="anchored" data-anchor-id="install-positron">Install Positron</h2>
+<p>Download <a href="https://positron.posit.co">Positron</a> and install it.</p>
+<p>Both Positron and RStudio are built by Posit, but only Positron keeps getting new features. RStudio keeps stability, security and bug-fix updates. Positron is built on the same open-source foundation as VS Code and runs R and Python side by side in one place. For anyone here who already works in Python day to day, the same editor covers both languages.</p>
+<p>Once Positron is installed, open it and check it has found your R installation: bottom status bar -&gt; interpreter picker, or <code>Cmd/Ctrl+Shift+P</code> -&gt; “R: Select Interpreter”.</p>
+</section>
+<section id="positron-keyboard-shortcuts" class="level2">
+<h2 class="anchored" data-anchor-id="positron-keyboard-shortcuts">Positron keyboard shortcuts</h2>
+<p>A handful of shortcuts cover most of what you’ll do in Positron day to day.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Action</th>
+<th>Mac</th>
+<th>Windows</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Open the Command Palette</td>
+<td><code>Cmd+Shift+P</code></td>
+<td><code>Ctrl+Shift+P</code></td>
+</tr>
+<tr class="even">
+<td>Toggle the file explorer (left panel)</td>
+<td><code>Cmd+B</code></td>
+<td><code>Ctrl+B</code></td>
+</tr>
+<tr class="odd">
+<td>Toggle the Plots/Variables panel (right panel)</td>
+<td><code>Cmd+Option+B</code></td>
+<td><code>Ctrl+Alt+B</code></td>
+</tr>
+<tr class="even">
+<td>Insert a new code cell</td>
+<td><code>Cmd+Shift+I</code></td>
+<td><code>Ctrl+Shift+I</code></td>
+</tr>
+<tr class="odd">
+<td>Run the current cell and move to the next</td>
+<td><code>Shift+Enter</code></td>
+<td><code>Shift+Enter</code></td>
+</tr>
+<tr class="even">
+<td>Run the current line</td>
+<td><code>Cmd+Enter</code></td>
+<td><code>Ctrl+Enter</code></td>
+</tr>
+<tr class="odd">
+<td>Toggle the terminal panel</td>
+<td><code>Cmd+`</code></td>
+<td><code>Ctrl+`</code></td>
+</tr>
+</tbody>
+</table>
+<p>The Command Palette is where to find commands with no dedicated shortcut worth memorizing, like “Quarto: Run All Cells” or “Quarto: Run Cells Above”: open it, then type the command name.</p>
+</section>
+<section id="get-the-course-materials" class="level2">
+<h2 class="anchored" data-anchor-id="get-the-course-materials">Get the course materials</h2>
+<p>Go to the <a href="https://github.com/franckalbinet/tidy-mirs">course repository</a> on GitHub, click <strong>Code</strong> -&gt; <strong>Download ZIP</strong>, then unzip it. Open the unzipped folder in Positron (<code>File</code> -&gt; <code>Open Folder…</code>).</p>
+<p>If you already use git day to day, cloning works just as well:</p>
+<div class="code-with-filename">
+<div class="code-with-filename-file">
+<pre><strong>Terminal</strong></pre>
 </div>
-<p>Two paths to set: the folder holding the OPUS files the spectrometer wrote, and the CSV holding the wet chemistry measured on the same samples.</p>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>SPECTRA_DIR <span class="ot">=</span> <span class="fu">here</span>(<span class="st">"data/RT_spectra"</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>SOIL_PROP_FILE <span class="ot">=</span> <span class="fu">here</span>(<span class="st">"data/RT_wetchem_soildata.csv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" data-filename="Terminal"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/franckalbinet/tidy-mirs.git</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<section id="loading-and-joining-everything-in-one-call" class="level2">
-<h2 class="anchored" data-anchor-id="loading-and-joining-everything-in-one-call">Loading and joining everything in one call</h2>
-<p><code>prepare_rt()</code> does the whole job: read every OPUS file, average each sample’s repeat scans, load the wet chemistry, and join the two by sample ID.</p>
+</section>
+<section id="install-the-r-packages" class="level2">
+<h2 class="anchored" data-anchor-id="install-the-r-packages">Install the R packages</h2>
+<p>This project uses <a href="https://rstudio.github.io/renv/">renv</a> to pin exact package versions, the same idea as Python’s venv or conda. It gives you a project-local library instead of your regular R install. <code>renv.lock</code> records exactly what’s installed. Everyone in the course runs the same versions we tested against.</p>
+<p>Open the project in Positron and run, in the R console:</p>
+<div class="code-with-filename">
+<div class="code-with-filename-file">
+<pre><strong>Console</strong></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">restore</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The first run downloads and installs everything listed in <code>renv.lock</code> into a project-local library. It can take a few minutes and, on some platforms, needs to compile a couple of packages from source. It touches nothing outside this project folder.</p>
+<p><code>renv::restore()</code> can fail behind a restrictive network proxy, on a locked-down institutional laptop, or in similar cases. If it does, install the same packages directly into your regular R library instead:</p>
+<div class="code-with-filename">
+<div class="code-with-filename-file">
+<pre><strong>Console</strong></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"BiocManager"</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="st">"mixOmics"</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="fu">c</span>(</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"tidyverse"</span>, <span class="st">"tidymodels"</span>, <span class="st">"here"</span>, <span class="st">"opusreader2"</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"skimr"</span>, <span class="st">"plsmod"</span>, <span class="st">"prospectr"</span>, <span class="st">"resemble"</span>, <span class="st">"hexbin"</span>, <span class="st">"glue"</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"rules"</span>, <span class="st">"Cubist"</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Run the two parts in this order. <code>mixOmics</code> comes from Bioconductor, not CRAN, so <code>install.packages()</code> cannot find it. <code>plsmod</code> needs <code>mixOmics</code>, and cannot install until <code>mixOmics</code> is there.</p>
+<p>This gets you everything you need for the course. It isn’t version-pinned. Let us know if something behaves differently from the demo.</p>
+</section>
+<section id="check-everything-works" class="level2">
+<h2 class="anchored" data-anchor-id="check-everything-works">Check everything works</h2>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">prepare_rt</span>(SPECTRA_DIR, SOIL_PROP_FILE)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>data</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(opusreader2)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(prospectr)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(resemble)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plsmod)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rules)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Cubist)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">packageVersion</span>(<span class="st">"mixOmics"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 70 × 1,715
-   smp_id wn_3997.5 wn_3995.5 wn_3993.4 wn_3991.4 wn_3989.3 wn_3987.3 wn_3985.2
-   &lt;chr&gt;      &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
- 1 RT_01       1.02      1.02      1.02      1.02      1.02      1.02      1.02
- 2 RT_02       1.16      1.16      1.16      1.16      1.16      1.16      1.16
- 3 RT_03       1.22      1.22      1.23      1.23      1.23      1.23      1.23
- 4 RT_04       1.10      1.10      1.10      1.10      1.10      1.10      1.10
- 5 RT_05       1.13      1.13      1.13      1.13      1.13      1.13      1.13
- 6 RT_06       1.12      1.12      1.12      1.12      1.12      1.12      1.12
- 7 RT_07       1.12      1.12      1.12      1.12      1.12      1.12      1.12
- 8 RT_08       1.15      1.15      1.15      1.15      1.15      1.15      1.15
- 9 RT_09       1.38      1.38      1.38      1.38      1.38      1.38      1.38
-10 RT_10       1.10      1.10      1.10      1.10      1.10      1.10      1.10
-# ℹ 60 more rows
-# ℹ 1,707 more variables: wn_3983.2 &lt;dbl&gt;, wn_3981.1 &lt;dbl&gt;, wn_3979.1 &lt;dbl&gt;,
-#   wn_3977.0 &lt;dbl&gt;, wn_3975.0 &lt;dbl&gt;, wn_3972.9 &lt;dbl&gt;, wn_3970.9 &lt;dbl&gt;,
-#   wn_3968.8 &lt;dbl&gt;, wn_3966.8 &lt;dbl&gt;, wn_3964.7 &lt;dbl&gt;, wn_3962.7 &lt;dbl&gt;,
-#   wn_3960.6 &lt;dbl&gt;, wn_3958.6 &lt;dbl&gt;, wn_3956.5 &lt;dbl&gt;, wn_3954.5 &lt;dbl&gt;,
-#   wn_3952.4 &lt;dbl&gt;, wn_3950.3 &lt;dbl&gt;, wn_3948.3 &lt;dbl&gt;, wn_3946.2 &lt;dbl&gt;,
-#   wn_3944.2 &lt;dbl&gt;, wn_3942.1 &lt;dbl&gt;, wn_3940.1 &lt;dbl&gt;, wn_3938.0 &lt;dbl&gt;, …</code></pre>
+<pre><code>[1] '6.34.0'</code></pre>
 </div>
 </div>
-<p>70 soil samples come back as 70 rows. Each row carries a wavenumber column for every point on the spectrum (<code>wn_*</code>) alongside the wet chemistry: clay percentage, pH, total and organic carbon, potassium, phosphorus.</p>
-</section>
-<section id="unpacking-prepare_rt" class="level2">
-<h2 class="anchored" data-anchor-id="unpacking-prepare_rt">Unpacking <code>prepare_rt()</code></h2>
-<p>The rest of this page opens up what <code>prepare_rt()</code> does underneath, one step at a time. Open <code>R/prepare_data.R</code> alongside this page if you want to follow the source directly. Each step below matches one chunk of that function.</p>
-<section id="reading-opus-spectra-files" class="level3">
-<h3 class="anchored" data-anchor-id="reading-opus-spectra-files">Reading OPUS spectra files</h3>
-<p>The lab’s Bruker instrument writes one OPUS binary file per scan, with a <code>.0</code> extension: <code>RT_01_001.0</code>, <code>RT_01_002.0</code>, and so on for each of the four repeat scans per sample. <code>read_opus_tbl()</code> reads every file in a folder and returns one row per scan, wavenumbers as columns.</p>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>spectra <span class="ot">&lt;-</span> <span class="fu">read_opus_tbl</span>(SPECTRA_DIR)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>spectra</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 280 × 1,708
-   spc_id  wn_3997.5 wn_3995.5 wn_3993.4 wn_3991.4 wn_3989.3 wn_3987.3 wn_3985.2
-   &lt;chr&gt;       &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
- 1 RT_01_…     1.07      1.07      1.07      1.07      1.07      1.07      1.07 
- 2 RT_01_…     1.03      1.03      1.03      1.03      1.03      1.03      1.03 
- 3 RT_01_…     1.00      1.00      1.00      1.00      1.00      1.00      1.00 
- 4 RT_01_…     0.993     0.992     0.992     0.992     0.993     0.993     0.993
- 5 RT_02_…     1.15      1.15      1.15      1.15      1.15      1.15      1.15 
- 6 RT_02_…     1.19      1.19      1.19      1.19      1.19      1.19      1.19 
- 7 RT_02_…     1.17      1.17      1.17      1.17      1.17      1.17      1.17 
- 8 RT_02_…     1.13      1.13      1.13      1.13      1.13      1.13      1.13 
- 9 RT_03_…     1.19      1.19      1.19      1.19      1.19      1.20      1.20 
-10 RT_03_…     1.28      1.28      1.28      1.28      1.28      1.28      1.28 
-# ℹ 270 more rows
-# ℹ 1,700 more variables: wn_3983.2 &lt;dbl&gt;, wn_3981.1 &lt;dbl&gt;, wn_3979.1 &lt;dbl&gt;,
-#   wn_3977.0 &lt;dbl&gt;, wn_3975.0 &lt;dbl&gt;, wn_3972.9 &lt;dbl&gt;, wn_3970.9 &lt;dbl&gt;,
-#   wn_3968.8 &lt;dbl&gt;, wn_3966.8 &lt;dbl&gt;, wn_3964.7 &lt;dbl&gt;, wn_3962.7 &lt;dbl&gt;,
-#   wn_3960.6 &lt;dbl&gt;, wn_3958.6 &lt;dbl&gt;, wn_3956.5 &lt;dbl&gt;, wn_3954.5 &lt;dbl&gt;,
-#   wn_3952.4 &lt;dbl&gt;, wn_3950.3 &lt;dbl&gt;, wn_3948.3 &lt;dbl&gt;, wn_3946.2 &lt;dbl&gt;,
-#   wn_3944.2 &lt;dbl&gt;, wn_3942.1 &lt;dbl&gt;, wn_3940.1 &lt;dbl&gt;, wn_3938.0 &lt;dbl&gt;, …</code></pre>
-</div>
-</div>
-</section>
-<section id="averaging-replicate-scans" class="level3">
-<h3 class="anchored" data-anchor-id="averaging-replicate-scans">Averaging replicate scans</h3>
-<p>Each sample was scanned four times. <code>read_opus_tbl()</code> keeps every scan as its own row. <code>str_extract()</code> pulls the shared sample ID out of each scan’s filename, for example <code>RT_01</code> out of <code>RT_01_001</code>. Grouping by that ID and averaging every wavenumber column collapses the four scans into the one row per sample the rest of the pipeline needs.</p>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>dplyr, four verbs at a time
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>This chunk is your first look at dplyr, the package tidyverse uses for reshaping tables like this one. <code>mutate()</code> adds a column, <code>group_by()</code> marks rows to summarize together, <code>summarize()</code> collapses each group to one row, and <code>across()</code> applies the same function to several columns at once, here every column starting <code>wn_</code>. These four verbs cover most day-to-day data wrangling in R. The <a href="https://posit.co/resources/cheatsheets/">dplyr cheatsheet</a> and the <a href="https://dplyr.tidyverse.org">dplyr reference site</a> cover the rest.</p>
-</div>
-</div>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>spectra_mean <span class="ot">&lt;-</span> spectra <span class="sc">|&gt;</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">smp_id =</span> <span class="fu">str_extract</span>(spc_id, <span class="st">"RT_</span><span class="sc">\\</span><span class="st">d+"</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(smp_id) <span class="sc">|&gt;</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarize</span>(<span class="fu">across</span>(<span class="fu">starts_with</span>(<span class="st">"wn_"</span>), mean))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-</section>
-<section id="loading-soil-properties" class="level3">
-<h3 class="anchored" data-anchor-id="loading-soil-properties">Loading soil properties</h3>
-<p>The wet chemistry lives in a plain CSV, one row per sample.</p>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>soil_prop <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(SOIL_PROP_FILE)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>Interactively (e.g.&nbsp;in Positron or RStudio), <code>view(soil_prop)</code> opens the data viewer pane. For a rendered page, printing the tibble works just as well here. It has a manageable number of columns to show inline.</p>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>soil_prop</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 70 × 8
-   sample_id source clay_perc pH_H20 carbon_tot_perc carbon_org_perc
-   &lt;chr&gt;     &lt;chr&gt;      &lt;dbl&gt;  &lt;dbl&gt;           &lt;dbl&gt;           &lt;dbl&gt;
- 1 RT_01     KSSL        6.28   4.85           0.612           0.612
- 2 RT_02     KSSL        4.44   4.58           3.49            3.49 
- 3 RT_03     KSSL       42.2    4.23           0.257           0.257
- 4 RT_04     KSSL       17.1    6.53           1.98            1.98 
- 5 RT_05     KSSL       17.2    6.47           2.15            2.14 
- 6 RT_06     KSSL       18.2    6.92           2.05            2.02 
- 7 RT_07     KSSL       17.1    6.59           2.04            2.04 
- 8 RT_08     KSSL       27.5    5.41           0.182           0.182
- 9 RT_09     KSSL       12.9    5.19          16.2            16.2  
-10 RT_10     KSSL       21.9    5.90           1.02            1.02 
-# ℹ 60 more rows
-# ℹ 2 more variables: potassium_cmolkg &lt;dbl&gt;, phosporus_mgkg &lt;dbl&gt;</code></pre>
-</div>
-</div>
-</section>
-<section id="joining-spectra-and-soil-properties" class="level3">
-<h3 class="anchored" data-anchor-id="joining-spectra-and-soil-properties">Joining spectra and soil properties</h3>
-<p>The two tables share sample IDs under different names: <code>smp_id</code> in the averaged spectra, <code>sample_id</code> in the wet chemistry. <code>left_join()</code> takes both names when they don’t match.</p>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> spectra_mean <span class="sc">|&gt;</span> </span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(soil_prop, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"smp_id"</span> <span class="ot">=</span> <span class="st">"sample_id"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>To look at only the non-wavenumber columns:</p>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>data <span class="sc">|&gt;</span> </span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">!</span><span class="fu">starts_with</span>(<span class="st">"wn_"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 70 × 8
-   smp_id source clay_perc pH_H20 carbon_tot_perc carbon_org_perc
-   &lt;chr&gt;  &lt;chr&gt;      &lt;dbl&gt;  &lt;dbl&gt;           &lt;dbl&gt;           &lt;dbl&gt;
- 1 RT_01  KSSL        6.28   4.85           0.612           0.612
- 2 RT_02  KSSL        4.44   4.58           3.49            3.49 
- 3 RT_03  KSSL       42.2    4.23           0.257           0.257
- 4 RT_04  KSSL       17.1    6.53           1.98            1.98 
- 5 RT_05  KSSL       17.2    6.47           2.15            2.14 
- 6 RT_06  KSSL       18.2    6.92           2.05            2.02 
- 7 RT_07  KSSL       17.1    6.59           2.04            2.04 
- 8 RT_08  KSSL       27.5    5.41           0.182           0.182
- 9 RT_09  KSSL       12.9    5.19          16.2            16.2  
-10 RT_10  KSSL       21.9    5.90           1.02            1.02 
-# ℹ 60 more rows
-# ℹ 2 more variables: potassium_cmolkg &lt;dbl&gt;, phosporus_mgkg &lt;dbl&gt;</code></pre>
-</div>
-</div>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>A skewed column
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p><code>potassium_cmolkg</code> above is right-skewed. 58 of the 69 measured samples sit under 1 cmol(+)/kg. One reaches 2.8. <code>3-eda.qmd</code> comes back to this, with the plots to show it and the reasons it matters for modelling.</p>
-</div>
-</div>
-</section>
-</section>
-<section id="digging-further" class="level2">
-<h2 class="anchored" data-anchor-id="digging-further">Digging further</h2>
-<p><code>prepare_rt()</code> in <code>R/prepare_data.R</code> is exactly the four chunks above, chained. To see how <code>read_opus_tbl()</code> itself gets from a folder of <code>.0</code> files to a tibble, open <code>R/io.R</code> and step through it in the R console: build a small <code>path</code>, run <code>read_opus(dsn = path)</code> from opusreader2 on its own, inspect what comes back, then run each following line by hand. These scripts aren’t a package. <code>?read_opus_tbl</code> won’t find a help page. The roxygen comment above each function is written in the same format a package help page would show, and reads the same way top to bottom.</p>
+<p>If that runs without errors, you’re set up for the course.</p>
 
 
 </section>
@@ -891,7 +838,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>   
     <div class="nav-footer-center">
       &nbsp;
-    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/2-loading-data.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/0-getting-setup.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       &nbsp;
     </div>
