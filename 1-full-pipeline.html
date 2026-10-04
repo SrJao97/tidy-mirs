@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-26">
+<meta name="dcterms.date" content="2026-10-04">
 
 <title>The full pipeline – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -301,7 +301,7 @@ div.csl-indent {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 26, 2026</p>
+      <p class="date">October 4, 2026</p>
     </div>
   </div>
   
@@ -324,17 +324,18 @@ div.csl-indent {
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"prepare_data.R"</span>))</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"steps.R"</span>))</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"split.R"</span>))</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">tidymodels_prefer</span>()</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>SPECTRA_DIR <span class="ot">=</span> <span class="fu">here</span>(<span class="st">"data/RT_spectra"</span>)</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>SOIL_PROP_FILE <span class="ot">=</span> <span class="fu">here</span>(<span class="st">"data/RT_wetchem_soildata.csv"</span>)</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>TARGET <span class="ot">&lt;-</span> <span class="st">"carbon_tot_perc"</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>RESAMPLING_GRID <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">3995</span>, <span class="dv">600</span>, <span class="at">by =</span> <span class="sc">-</span><span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"config.R"</span>))</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">tidymodels_prefer</span>()</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>SPECTRA_DIR <span class="ot">=</span> <span class="fu">here</span>(<span class="st">"data/RT_spectra"</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>SOIL_PROP_FILE <span class="ot">=</span> <span class="fu">here</span>(<span class="st">"data/RT_wetchem_soildata.csv"</span>)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>TARGET <span class="ot">&lt;-</span> <span class="st">"carbon_tot_perc"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p><a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/config.R"><code>R/config.R</code></a> holds the settings several pages share: <code>EXCLUDED_SAMPLES</code>, the preprocessing settings and the outlier cutoff. To try another setting, change it there and render the pages again.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Loading ------------------------------------------------------------------</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># RT_44 dropped as a known outlier -&gt; 5-outlier-detection.qmd</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">prepare_rt</span>(SPECTRA_DIR, SOIL_PROP_FILE) <span class="sc">|&gt;</span> <span class="fu">filter</span>(smp_id <span class="sc">!=</span> <span class="st">"RT_44"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># EXCLUDED_SAMPLES dropped as known outliers -&gt; 5-outlier-detection.qmd</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">prepare_rt</span>(SPECTRA_DIR, SOIL_PROP_FILE) <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>smp_id <span class="sc">%in%</span> EXCLUDED_SAMPLES)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Preprocessing --------------------------------------------------------------</span></span>
@@ -349,7 +350,7 @@ div.csl-indent {
 <span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_log</span>(<span class="fu">all_outcomes</span>(), <span class="at">base =</span> <span class="dv">10</span>) <span class="sc">|&gt;</span></span>
 <span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_resample</span>(<span class="at">grid =</span> RESAMPLING_GRID) <span class="sc">|&gt;</span></span>
 <span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_snv</span>() <span class="sc">|&gt;</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_sg</span>(<span class="at">w =</span> <span class="dv">15</span>L, <span class="at">p =</span> <span class="dv">3</span>L, <span class="at">m =</span> <span class="dv">1</span>L)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_sg</span>(<span class="at">w =</span> SG_W, <span class="at">p =</span> SG_P, <span class="at">m =</span> SG_M)</span>
 <span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Tuning -----------------------------------------------------------------------</span></span>
 <span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="co"># search num_comp, pick the best, lock it in -&gt; 6-evaluating-performance.qmd</span></span>
@@ -372,8 +373,8 @@ div.csl-indent {
 <pre><code># A tibble: 2 × 2
   .metric .estimate
   &lt;chr&gt;       &lt;dbl&gt;
-1 rmse        0.131
-2 rsq         0.933</code></pre>
+1 rmse       0.0961
+2 rsq        0.924 </code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Predicting ---------------------------------------------------------------------</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># .pred and TARGET are both log10 here -&gt; 2-loading-data.qmd, 3-eda.qmd</span></span>
@@ -382,14 +383,14 @@ div.csl-indent {
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 6 × 2
-  carbon_tot_perc   .pred
-            &lt;dbl&gt;   &lt;dbl&gt;
-1          0.296  0.322  
-2          0.332  0.306  
-3          0.311  0.320  
-4          0.318  0.308  
-5          0.258  0.254  
-6          0.0192 0.00379</code></pre>
+  carbon_tot_perc  .pred
+            &lt;dbl&gt;  &lt;dbl&gt;
+1          0.296  0.331 
+2          0.332  0.329 
+3          0.311  0.323 
+4          0.318  0.320 
+5          0.258  0.273 
+6          0.0192 0.0386</code></pre>
 </div>
 </div>
 

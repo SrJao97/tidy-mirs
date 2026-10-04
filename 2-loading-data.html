@@ -269,6 +269,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#reading-opus-spectra-files" id="toc-reading-opus-spectra-files" class="nav-link" data-scroll-target="#reading-opus-spectra-files">Reading OPUS spectra files</a></li>
   <li><a href="#averaging-replicate-scans" id="toc-averaging-replicate-scans" class="nav-link" data-scroll-target="#averaging-replicate-scans">Averaging replicate scans</a></li>
   <li><a href="#loading-soil-properties" id="toc-loading-soil-properties" class="nav-link" data-scroll-target="#loading-soil-properties">Loading soil properties</a></li>
+  <li><a href="#fixing-a-placeholder-value" id="toc-fixing-a-placeholder-value" class="nav-link" data-scroll-target="#fixing-a-placeholder-value">Fixing a placeholder value</a></li>
   <li><a href="#joining-spectra-and-soil-properties" id="toc-joining-spectra-and-soil-properties" class="nav-link" data-scroll-target="#joining-spectra-and-soil-properties">Joining spectra and soil properties</a></li>
   </ul></li>
   <li><a href="#digging-further" id="toc-digging-further" class="nav-link" data-scroll-target="#digging-further">Digging further</a></li>
@@ -437,17 +438,25 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </section>
+<section id="fixing-a-placeholder-value" class="level3">
+<h3 class="anchored" data-anchor-id="fixing-a-placeholder-value">Fixing a placeholder value</h3>
+<p><code>RT_44</code> has a clay content of exactly 0%. Every other property of <code>RT_44</code>, except pH, is missing. A soil with no clay at all is implausible, so the 0 is most likely a placeholder for a missing value. <code>if_else()</code> replaces it with <code>NA</code>, R’s code for a missing value. It changes only that one value: the sample, its spectrum and its pH stay.</p>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>soil_prop <span class="ot">&lt;-</span> soil_prop <span class="sc">|&gt;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">clay_perc =</span> <span class="fu">if_else</span>(sample_id <span class="sc">==</span> <span class="st">"RT_44"</span> <span class="sc">&amp;</span> clay_perc <span class="sc">==</span> <span class="dv">0</span>, <span class="cn">NA_real_</span>, clay_perc))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
 <section id="joining-spectra-and-soil-properties" class="level3">
 <h3 class="anchored" data-anchor-id="joining-spectra-and-soil-properties">Joining spectra and soil properties</h3>
 <p>The two tables share sample IDs under different names: <code>smp_id</code> in the averaged spectra, <code>sample_id</code> in the wet chemistry. <code>left_join()</code> takes both names when they don’t match.</p>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> spectra_mean <span class="sc">|&gt;</span> </span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(soil_prop, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"smp_id"</span> <span class="ot">=</span> <span class="st">"sample_id"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> spectra_mean <span class="sc">|&gt;</span> </span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(soil_prop, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"smp_id"</span> <span class="ot">=</span> <span class="st">"sample_id"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>To look at only the non-wavenumber columns:</p>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>data <span class="sc">|&gt;</span> </span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">!</span><span class="fu">starts_with</span>(<span class="st">"wn_"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>data <span class="sc">|&gt;</span> </span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">!</span><span class="fu">starts_with</span>(<span class="st">"wn_"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 70 × 8
    smp_id source clay_perc pH_H20 carbon_tot_perc carbon_org_perc
@@ -483,7 +492,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="digging-further" class="level2">
 <h2 class="anchored" data-anchor-id="digging-further">Digging further</h2>
-<p><code>prepare_rt()</code> in <a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/prepare_data.R"><code>R/prepare_data.R</code></a> is exactly the four chunks above, chained. To see how <code>read_opus_tbl()</code> itself gets from a folder of <code>.0</code> files to a tibble, open <a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/io.R"><code>R/io.R</code></a> and step through it in the R console: build a small <code>path</code>, run <code>read_opus(dsn = path)</code> from opusreader2 on its own, inspect what comes back, then run each following line by hand. These scripts aren’t a package. <code>?read_opus_tbl</code> won’t find a help page. The roxygen comment above each function is written in the same format a package help page would show, and reads the same way top to bottom.</p>
+<p><code>prepare_rt()</code> in <a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/prepare_data.R"><code>R/prepare_data.R</code></a> is exactly the steps above, chained. To see how <code>read_opus_tbl()</code> itself gets from a folder of <code>.0</code> files to a tibble, open <a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/io.R"><code>R/io.R</code></a> and step through it in the R console: build a small <code>path</code>, run <code>read_opus(dsn = path)</code> from opusreader2 on its own, inspect what comes back, then run each following line by hand. These scripts aren’t a package. <code>?read_opus_tbl</code> won’t find a help page. The roxygen comment above each function is written in the same format a package help page would show, and reads the same way top to bottom.</p>
 
 
 </section>

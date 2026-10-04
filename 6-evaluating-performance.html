@@ -356,8 +356,9 @@ window.Quarto = {
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"prepare_data.R"</span>))</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"steps.R"</span>))</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"split.R"</span>))</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">theme_set</span>(<span class="fu">theme_bw</span>())</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">tidymodels_prefer</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"config.R"</span>))</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">theme_set</span>(<span class="fu">theme_bw</span>())</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">tidymodels_prefer</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>References:</p>
 <ul>
@@ -373,20 +374,13 @@ window.Quarto = {
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>SOIL_PROP_FILE <span class="ot">=</span> <span class="fu">here</span>(<span class="st">"data/RT_wetchem_soildata.csv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>TARGET <span class="ot">&lt;-</span> <span class="st">"carbon_tot_perc"</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Preprocessing ----------------------------------------------------------</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>RESAMPLE_BY <span class="ot">&lt;-</span> <span class="dv">5</span>L</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>RESAMPLING_GRID <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">3995</span>, <span class="dv">600</span>, <span class="at">by =</span> <span class="sc">-</span><span class="dv">5</span>)</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>SG_W        <span class="ot">&lt;-</span> <span class="dv">15</span>L   </span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>SG_P        <span class="ot">&lt;-</span> <span class="dv">3</span>L    </span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>SG_M        <span class="ot">&lt;-</span> <span class="dv">1</span>L  </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>TARGET <span class="ot">&lt;-</span> <span class="st">"carbon_tot_perc"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="getting-data" class="level2">
 <h2 class="anchored" data-anchor-id="getting-data">Getting data</h2>
-<p><code>RT_44</code> is left out. <a href="./5-outlier-detection.html">Outlier detection</a> highlights its spectrum as a candidate outlier.</p>
+<p><code>EXCLUDED_SAMPLES</code>, <code>RT_44</code> and <code>RT_42</code>, are left out. <a href="./5-outlier-detection.html">Outlier detection</a> flags their spectra as the two most unusual. <code>RT_44</code> has almost no lab data. <code>RT_42</code> is not a measurement error. It is most likely an organic soil, such as a peat: its total and organic carbon are both 49%, and its pH is 3.3. A model cannot learn a soil type from a single sample, so leaving <code>RT_42</code> out is a judgement about what the model can cover, not only a distance rule.</p>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">prepare_rt</span>(SPECTRA_DIR, SOIL_PROP_FILE)<span class="sc">|&gt;</span> <span class="fu">filter</span>(smp_id <span class="sc">!=</span> <span class="st">"RT_44"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">prepare_rt</span>(SPECTRA_DIR, SOIL_PROP_FILE) <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>smp_id <span class="sc">%in%</span> EXCLUDED_SAMPLES)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="splitting-the-data" class="level2">
@@ -405,7 +399,7 @@ window.Quarto = {
 <section id="what-vfold_cv-does" class="level3">
 <h3 class="anchored" data-anchor-id="what-vfold_cv-does">What <code>vfold_cv()</code> does</h3>
 <p>The model has one setting to choose: the number of PLS components. Each candidate value needs a score on samples the model has not seen. The training set cannot give that score. Training error keeps falling as components are added, even after the extra components only fit noise. The test set cannot give it either, because it must stay untouched.</p>
-<p>Cross-validation makes held-out data from the training set itself. <code>vfold_cv()</code> shuffles the 49 training samples and deals them into <code>v = 10</code> groups, called folds, of 4 to 6 samples each. Each fold takes a turn as the assessment set. The model is fitted on the other 9 folds, 43 to 45 samples, and scored on the held-out fold. After 10 rounds, every training sample has been predicted once by a model that did not see it. The 10 fold scores are averaged into one estimate.</p>
+<p>Cross-validation makes held-out data from the training set itself. <code>vfold_cv()</code> shuffles the 48 training samples and deals them into <code>v = 10</code> groups, called folds, of 4 to 6 samples each. Each fold takes a turn as the assessment set. The model is fitted on the other 9 folds, 42 to 44 samples, and scored on the held-out fold. After 10 rounds, every training sample has been predicted once by a model that did not see it. The 10 fold scores are averaged into one estimate.</p>
 <p><code>tune_grid()</code> runs the whole workflow inside every fold, recipe included. The recipe is prepped on the 9 fitting folds only. Nothing learnt from the held-out fold leaks into the model.</p>
 </section>
 <section id="stratification" class="level3">
@@ -436,9 +430,9 @@ window.Quarto = {
 <p>The <span class="math inline">\(\sigma / \sqrt{n}\)</span> formula needs independent measurements. The 100 fold scores are not independent:</p>
 <ul>
 <li>Within one repeat, any two fitting sets share 8 of their 9 folds, about 90% of their samples. The models they produce are very similar.</li>
-<li>Across repeats, the same 49 samples are reshuffled. No new soil ever enters.</li>
+<li>Across repeats, the same 48 samples are reshuffled. No new soil ever enters.</li>
 </ul>
-<p>Repeating averages away the noise that comes from how the folds were dealt. It cannot remove the noise that comes from which 49 soils were collected. A different set of 49 soils from the same region would give a different curve. No amount of repeating on the current set shows that.</p>
+<p>Repeating averages away the noise that comes from how the folds were dealt. It cannot remove the noise that comes from which 48 soils were collected. A different set of 48 soils from the same region would give a different curve. No amount of repeating on the current set shows that.</p>
 <p>The effective number of independent measurements is therefore much smaller than 100, and <code>std_err</code> is too small. Read it as a lower bound on the real uncertainty. It is still useful to compare candidates with each other, because they all use the same folds. There is no simple fix. Bengio and Grandvalet (2004) show that no unbiased estimator of the variance of k-fold cross-validation exists.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
@@ -503,16 +497,16 @@ window.Quarto = {
 <pre><code># A tibble: 38 × 7
    num_comp .metric .estimator  mean     n std_err .config         
       &lt;int&gt; &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;           
- 1        2 rmse    standard   0.192   100 0.00559 pre0_mod01_post0
- 2        2 rsq     standard   0.861   100 0.0134  pre0_mod01_post0
- 3        3 rmse    standard   0.174   100 0.00471 pre0_mod02_post0
- 4        3 rsq     standard   0.898   100 0.00926 pre0_mod02_post0
- 5        4 rmse    standard   0.163   100 0.00512 pre0_mod03_post0
- 6        4 rsq     standard   0.905   100 0.00781 pre0_mod03_post0
- 7        5 rmse    standard   0.155   100 0.00573 pre0_mod04_post0
- 8        5 rsq     standard   0.918   100 0.00743 pre0_mod04_post0
- 9        6 rmse    standard   0.142   100 0.00528 pre0_mod05_post0
-10        6 rsq     standard   0.927   100 0.00724 pre0_mod05_post0
+ 1        2 rmse    standard   0.203   100 0.00389 pre0_mod01_post0
+ 2        2 rsq     standard   0.819   100 0.0187  pre0_mod01_post0
+ 3        3 rmse    standard   0.185   100 0.00523 pre0_mod02_post0
+ 4        3 rsq     standard   0.856   100 0.0167  pre0_mod02_post0
+ 5        4 rmse    standard   0.174   100 0.00528 pre0_mod03_post0
+ 6        4 rsq     standard   0.872   100 0.0145  pre0_mod03_post0
+ 7        5 rmse    standard   0.162   100 0.00510 pre0_mod04_post0
+ 8        5 rsq     standard   0.896   100 0.0117  pre0_mod04_post0
+ 9        6 rmse    standard   0.152   100 0.00464 pre0_mod05_post0
+10        6 rsq     standard   0.895   100 0.0138  pre0_mod05_post0
 # ℹ 28 more rows</code></pre>
 </div>
 </div>
@@ -595,25 +589,25 @@ window.Quarto = {
 <pre><code># A tibble: 19 × 4
    num_comp  mean std_err within_bound
       &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;lgl&gt;       
- 1        2 0.192 0.00559 FALSE       
- 2        3 0.174 0.00471 FALSE       
- 3        4 0.163 0.00512 FALSE       
- 4        5 0.155 0.00573 FALSE       
- 5        6 0.142 0.00528 FALSE       
- 6        7 0.137 0.00497 TRUE        
- 7        8 0.141 0.00614 TRUE        
- 8        9 0.144 0.00693 FALSE       
- 9       10 0.151 0.00756 FALSE       
-10       11 0.154 0.00759 FALSE       
-11       12 0.159 0.00800 FALSE       
-12       13 0.164 0.00841 FALSE       
-13       14 0.170 0.00847 FALSE       
-14       15 0.171 0.00860 FALSE       
-15       16 0.173 0.00881 FALSE       
-16       17 0.177 0.00910 FALSE       
-17       18 0.177 0.00935 FALSE       
-18       19 0.179 0.00976 FALSE       
-19       20 0.180 0.0102  FALSE       </code></pre>
+ 1        2 0.203 0.00389 FALSE       
+ 2        3 0.185 0.00523 FALSE       
+ 3        4 0.174 0.00528 FALSE       
+ 4        5 0.162 0.00510 FALSE       
+ 5        6 0.152 0.00464 FALSE       
+ 6        7 0.146 0.00494 TRUE        
+ 7        8 0.147 0.00578 TRUE        
+ 8        9 0.150 0.00633 TRUE        
+ 9       10 0.150 0.00652 TRUE        
+10       11 0.147 0.00641 TRUE        
+11       12 0.149 0.00626 TRUE        
+12       13 0.149 0.00606 TRUE        
+13       14 0.150 0.00604 TRUE        
+14       15 0.151 0.00593 FALSE       
+15       16 0.153 0.00599 FALSE       
+16       17 0.155 0.00622 FALSE       
+17       18 0.160 0.00658 FALSE       
+18       19 0.167 0.00682 FALSE       
+19       20 0.171 0.00693 FALSE       </code></pre>
 </div>
 </div>
 <p>Here <code>select_best()</code> picks 7 components and the one-standard-error rule picks 7. When the two agree, the table shows how close the nearest simpler candidate came to the bound.</p>
@@ -639,8 +633,8 @@ window.Quarto = {
 <pre><code># A tibble: 2 × 4
   .metric .estimator .estimate .config        
   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;          
-1 rmse    standard       0.131 pre0_mod0_post0
-2 rsq     standard       0.933 pre0_mod0_post0</code></pre>
+1 rmse    standard      0.0961 pre0_mod0_post0
+2 rsq     standard      0.924  pre0_mod0_post0</code></pre>
 </div>
 </div>
 <p><code>collect_predictions()</code> gives one row per test sample: the observed value and the prediction <code>.pred</code>, both in log10 units.</p>
@@ -648,28 +642,28 @@ window.Quarto = {
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect_predictions</span>(final_res)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 20 × 5
-      .pred id               carbon_tot_perc  .row .config        
-      &lt;dbl&gt; &lt;chr&gt;                      &lt;dbl&gt; &lt;int&gt; &lt;chr&gt;          
- 1  0.322   train/test split          0.296      4 pre0_mod0_post0
- 2  0.306   train/test split          0.332      5 pre0_mod0_post0
- 3  0.320   train/test split          0.311      6 pre0_mod0_post0
- 4  0.308   train/test split          0.318     13 pre0_mod0_post0
- 5  0.254   train/test split          0.258     17 pre0_mod0_post0
- 6  0.00379 train/test split          0.0192    18 pre0_mod0_post0
- 7 -0.451   train/test split         -0.596     26 pre0_mod0_post0
- 8  0.00132 train/test split          0.0269    30 pre0_mod0_post0
- 9 -0.0110  train/test split          0.0469    31 pre0_mod0_post0
-10 -0.318   train/test split         -0.551     32 pre0_mod0_post0
-11 -0.0443  train/test split          0.0293    36 pre0_mod0_post0
-12 -0.441   train/test split         -0.613     38 pre0_mod0_post0
-13 -0.267   train/test split         -0.569     44 pre0_mod0_post0
-14 -0.292   train/test split         -0.595     46 pre0_mod0_post0
-15  0.624   train/test split          0.519     49 pre0_mod0_post0
-16  0.601   train/test split          0.464     50 pre0_mod0_post0
-17  0.220   train/test split          0.280     51 pre0_mod0_post0
-18 -0.158   train/test split         -0.240     54 pre0_mod0_post0
-19  0.445   train/test split          0.469     57 pre0_mod0_post0
-20  0.216   train/test split          0.283     58 pre0_mod0_post0</code></pre>
+     .pred id               carbon_tot_perc  .row .config        
+     &lt;dbl&gt; &lt;chr&gt;                      &lt;dbl&gt; &lt;int&gt; &lt;chr&gt;          
+ 1  0.331  train/test split          0.296      4 pre0_mod0_post0
+ 2  0.329  train/test split          0.332      5 pre0_mod0_post0
+ 3  0.323  train/test split          0.311      7 pre0_mod0_post0
+ 4  0.320  train/test split          0.318     13 pre0_mod0_post0
+ 5  0.273  train/test split          0.258     17 pre0_mod0_post0
+ 6  0.0386 train/test split          0.0192    18 pre0_mod0_post0
+ 7  0.0595 train/test split          0.0521    19 pre0_mod0_post0
+ 8 -0.334  train/test split         -0.567     20 pre0_mod0_post0
+ 9 -0.468  train/test split         -0.596     26 pre0_mod0_post0
+10  0.0180 train/test split          0.0487    29 pre0_mod0_post0
+11  0.0174 train/test split          0.0269    30 pre0_mod0_post0
+12 -0.115  train/test split          0.0415    37 pre0_mod0_post0
+13 -0.475  train/test split         -0.613     38 pre0_mod0_post0
+14  0.565  train/test split          0.482     40 pre0_mod0_post0
+15  0.153  train/test split          0.276     42 pre0_mod0_post0
+16 -0.315  train/test split         -0.238     44 pre0_mod0_post0
+17  0.223  train/test split          0.284     47 pre0_mod0_post0
+18  0.640  train/test split          0.464     49 pre0_mod0_post0
+19 -0.310  train/test split         -0.240     53 pre0_mod0_post0
+20  0.476  train/test split          0.469     56 pre0_mod0_post0</code></pre>
 </div>
 </div>
 <p>Points on the dashed line are perfect predictions. <code>coord_obs_pred()</code> puts both axes on the same scale, so the distance from the line reads the same in either direction.</p>

@@ -320,8 +320,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"prepare_data.R"</span>))</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"steps.R"</span>))</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"split.R"</span>))</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">theme_set</span>(<span class="fu">theme_bw</span>())</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">tidymodels_prefer</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">here</span>(<span class="st">"R"</span>, <span class="st">"config.R"</span>))</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">theme_set</span>(<span class="fu">theme_bw</span>())</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">tidymodels_prefer</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>References:</p>
 <ul>
@@ -336,17 +337,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>TARGET <span class="ot">&lt;-</span> <span class="st">"carbon_tot_perc"</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Preprocessing ----------------------------------------------------------</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>RESAMPLING_GRID <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">3995</span>, <span class="dv">600</span>, <span class="at">by =</span> <span class="sc">-</span><span class="dv">5</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># --- PLS --------------------------------------------------------------------</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>NUM_COMP <span class="ot">&lt;-</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">20</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># --- PLS --------------------------------------------------------------------</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>NUM_COMP <span class="ot">&lt;-</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">20</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="data-split-and-folds" class="level2">
 <h2 class="anchored" data-anchor-id="data-split-and-folds">Data, split, and folds</h2>
-<p>These are exactly the steps of <a href="../6-evaluating-performance.html">Evaluating performance</a>: <code>RT_44</code> left out, a Kennard-Stone split, and 10-fold cross-validation repeated 10 times on the training set. The test set is not used on this page.</p>
+<p>These are exactly the steps of <a href="../6-evaluating-performance.html">Evaluating performance</a>: <code>EXCLUDED_SAMPLES</code> left out, a Kennard-Stone split, and 10-fold cross-validation repeated 10 times on the training set. The test set is not used on this page.</p>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">prepare_rt</span>(SPECTRA_DIR, SOIL_PROP_FILE) <span class="sc">|&gt;</span> <span class="fu">filter</span>(smp_id <span class="sc">!=</span> <span class="st">"RT_44"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">prepare_rt</span>(SPECTRA_DIR, SOIL_PROP_FILE) <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>smp_id <span class="sc">%in%</span> EXCLUDED_SAMPLES)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>split <span class="ot">&lt;-</span> <span class="fu">kennard_stone_split</span>(data, <span class="at">prop =</span> <span class="dv">50</span><span class="sc">/</span><span class="dv">70</span>, <span class="at">cols =</span> <span class="fu">starts_with</span>(<span class="st">"wn_"</span>))</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -417,7 +415,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>Each SG setting has a cost. It changes the spectra, so in every fold the recipe must be prepped again and PLS fitted again. The number of components adds almost no cost. PLS builds its components one after the other, and adding a component does not change the ones before it. So a model fitted with 20 components already contains the models with 2 to 19 components: to predict with 5 components, it uses only the first 5. <code>tune_grid()</code> uses this, and fits PLS only once per SG setting in each fold. With the model without SG, that is 8 settings × 100 folds, 800 fits.</p>
 <p><code>cache: true</code> stores the result of the two tuning chunks on disk. Later renders reuse it, as long as the chunk code and the objects hashed in <code>cache.extra</code> are unchanged. <code>rlang::hash()</code> turns those objects into one short string, which changes whenever any of them changes. To run the tuning again, delete the <code>tuning-savitzky-golay_cache</code> folder.</p>
-<div class="cell" data-layout-align="center" data-cache.extra="4d0daeb455c0753275759b8e3754bfc9">
+<div class="cell" data-layout-align="center" data-cache.extra="8bbab1c3773d800c7b8707149f9a7604">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>res_base <span class="ot">&lt;-</span> <span class="fu">tune_grid</span>(</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  wf_base,</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">resamples =</span> folds,</span>
@@ -425,7 +423,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">metrics =</span> <span class="fu">metric_set</span>(rmse)</span>
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div class="cell" data-layout-align="center" data-cache.extra="f81bf75141263ff8443a832489b41a87">
+<div class="cell" data-layout-align="center" data-cache.extra="502f7499899656ec3abb3d39fa1a2fc7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>res_sg <span class="ot">&lt;-</span> <span class="fu">tune_grid</span>(</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  wf_sg,</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">resamples =</span> folds,</span>
@@ -442,7 +440,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">collect_metrics</span>(res_base) <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">setting =</span> <span class="st">"no SG"</span>),</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">collect_metrics</span>(res_sg)   <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">setting =</span> glue<span class="sc">::</span><span class="fu">glue</span>(<span class="st">"w={w}, p={p}, m={m}"</span>))</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">default =</span> setting <span class="sc">==</span> <span class="st">"w=15, p=3, m=1"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">default =</span> setting <span class="sc">==</span> glue<span class="sc">::</span><span class="fu">glue</span>(<span class="st">"w={SG_W}, p={SG_P}, m={SG_M}"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="rmse-against-the-number-of-components" class="level3">
 <h3 class="anchored" data-anchor-id="rmse-against-the-number-of-components">RMSE against the number of components</h3>
@@ -482,14 +480,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code># A tibble: 8 × 5
   setting        num_comp  mean std_err within_bound
   &lt;glue&gt;            &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;lgl&gt;       
-1 w=21, p=2, m=0        7 0.135 0.00467 TRUE        
-2 w=7, p=2, m=0        20 0.135 0.00678 TRUE        
-3 no SG                 8 0.135 0.00492 TRUE        
-4 w=15, p=3, m=1        7 0.137 0.00497 TRUE        
-5 w=21, p=2, m=1        7 0.139 0.00479 TRUE        
-6 w=7, p=2, m=1         7 0.140 0.00483 FALSE       
-7 w=21, p=2, m=2        9 0.144 0.00666 FALSE       
-8 w=7, p=2, m=2         7 0.173 0.00640 FALSE       </code></pre>
+1 w=7, p=2, m=0        20 0.133 0.00643 TRUE        
+2 w=21, p=2, m=0        8 0.137 0.00433 TRUE        
+3 w=21, p=2, m=2       16 0.139 0.00485 TRUE        
+4 no SG                 8 0.140 0.00474 FALSE       
+5 w=21, p=2, m=1        7 0.145 0.00464 FALSE       
+6 w=15, p=3, m=1        7 0.146 0.00494 FALSE       
+7 w=7, p=2, m=1         7 0.147 0.00489 FALSE       
+8 w=7, p=2, m=2         9 0.179 0.00628 FALSE       </code></pre>
 </div>
 </div>
 <p>The plot shows the same values. The error bars show ±1 standard error. The dashed line is the bound. The default is in red.</p>
@@ -513,21 +511,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>n_within   <span class="ot">&lt;-</span> <span class="fu">sum</span>(best_per_setting<span class="sc">$</span>mean <span class="sc">&lt;=</span> bound)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>spread_sg  <span class="ot">&lt;-</span> <span class="fu">diff</span>(<span class="fu">range</span>(best_per_setting<span class="sc">$</span>mean))</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>comp_range <span class="ot">&lt;-</span> rmse_res <span class="sc">|&gt;</span> <span class="fu">filter</span>(setting <span class="sc">==</span> best_row<span class="sc">$</span>setting) <span class="sc">|&gt;</span> <span class="fu">pull</span>(mean) <span class="sc">|&gt;</span> <span class="fu">range</span>() <span class="sc">|&gt;</span> <span class="fu">diff</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>comp_range <span class="ot">&lt;-</span> rmse_res <span class="sc">|&gt;</span> <span class="fu">filter</span>(setting <span class="sc">==</span> best_row<span class="sc">$</span>setting) <span class="sc">|&gt;</span> <span class="fu">pull</span>(mean) <span class="sc">|&gt;</span> <span class="fu">range</span>() <span class="sc">|&gt;</span> <span class="fu">diff</span>()</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>default_row <span class="ot">&lt;-</span> best_per_setting <span class="sc">|&gt;</span> <span class="fu">filter</span>(default)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>5 of the 8 settings are inside the bound. Between the best and the worst setting, the lowest mean RMSE varies by 0.038. For the best setting alone, the RMSE varies by 0.11 across the number of components. On this dataset, the number of components matters more than the preprocessing setting.</p>
+<p>3 of the 8 settings are inside the bound. Between the best and the worst setting, the lowest mean RMSE varies by 0.046. For the best setting alone, the RMSE varies by 0.12 across the number of components. On this dataset, the number of components matters more than the preprocessing setting.</p>
 <p>The standard errors are also too small, as <a href="../6-evaluating-performance.html">Evaluating performance</a> explains: the 100 fold scores are not independent. The real uncertainty is wider than the error bars, so the settings are even harder to separate than the plot suggests.</p>
 </section>
 </section>
 <section id="what-this-means-in-practice" class="level2">
 <h2 class="anchored" data-anchor-id="what-this-means-in-practice">What this means in practice</h2>
-<p>With 49 training samples, the data cannot separate most SG settings. Three patterns stand out in the table above:</p>
+<p>With 48 training samples, the data cannot reliably separate most SG settings. The ranking is also unstable. Removing a single sample, <code>RT_42</code>, reordered most of the table and moved several settings across the bound. Three points still stand out:</p>
 <ul>
-<li><strong>The model without SG is among the best.</strong> On this dataset, SG adds nothing measurable on top of SNV and PLS. PLS combines hundreds of wavenumbers into each component, which already averages away much of the noise that SG smoothing would remove.</li>
 <li><strong>Settings that amplify noise do worse.</strong> Each derivative amplifies noise, and a narrow window averages little of it away. The second derivative with <code>w = 7</code>, a window of 30 cm⁻¹, is clearly the worst setting.</li>
-<li><strong>The course default is inside the bound.</strong> There is no evidence that another setting would do better here.</li>
+<li><strong>Settings without a derivative do well here.</strong> Smoothing alone, or no SG at all, scores at or near the top. PLS combines hundreds of wavenumbers into each component, which already averages away much of the noise that SG smoothing would remove.</li>
+<li><strong>The course default is not among the best here.</strong> Its lowest mean RMSE is 0.146, against a bound of 0.139. The gap is small. One sample was enough to move the default from inside the bound to outside it, so this is weak evidence against the setting.</li>
 </ul>
 <p>The choice of SG setting is therefore not worth a long search: avoid settings that amplify noise, and keep a standard one. The number of PLS components matters much more, and tuning it is essential.</p>
+<p>The course keeps <code>w = 15</code>, <code>p = 3</code>, <code>m = 1</code> as its default. The first derivative is a standard choice for MIR spectra: it removes baseline shifts, and <a href="../4-feature-engineering.html">Feature engineering</a> shows what it does to a spectrum. To try another setting on every page, change <code>SG_W</code>, <code>SG_P</code> and <code>SG_M</code> in <code>R/config.R</code> and render the pages again. Compare settings with cross-validation results, as on this page, not with the test score. Choosing with the test set makes its score optimistic.</p>
 <p>This holds for this dataset, not in general. Two things can change the answer:</p>
 <ul>
 <li><strong>More samples.</strong> With thousands of samples, like the <a href="../8-preparing-ossl.html">OSSL</a> sample, the error bars shrink. Differences between settings that are hidden here can become visible. The same check is then worth running, with a validation set instead of repeated cross-validation to keep the cost down.</li>
