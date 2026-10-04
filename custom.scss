@@ -9,11 +9,92 @@ h1 {
   color: #CA225E;
 }
 
+// --- Sidebar, in the style of Tidy Modeling with R -------------------------
+// Values follow TMwR.css in github.com/tidymodels/TMwR.
+
 .sidebar-title {
   color: #CA225E;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  // As tall as the page links, like TMwR. Fits on one line in a 300px sidebar.
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1.5pt;
+  line-height: 1.4;
   text-transform: uppercase;
+}
+
+// Quarto sets font-weight on every link ($link-weight), so the title link
+// does not inherit the weight above unless told to.
+.sidebar-title a {
+  font-weight: inherit;
+}
+
+// Page links: translucent dark ink, darker on hover, pink for the current page.
+.sidebar-navigation .sidebar-item .sidebar-link {
+  color: #1a162dad;
+  padding-top: 0.15rem;
+  padding-bottom: 0.15rem;
+
+  &:hover {
+    color: #1a162dde;
+  }
+
+  &.active {
+    color: #CA225E;
+  }
+}
+
+// Section headers: small, bold, spaced capitals. Always open, so no chevron.
+.sidebar-item-section > .sidebar-item-container {
+  margin-top: 1.2rem;
+  margin-bottom: 0.2rem;
+
+  .sidebar-item-text {
+    color: #1A162D;
+    font-size: 12.8px;
+    font-weight: 700;
+    letter-spacing: 2pt;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  .sidebar-item-toggle {
+    display: none;
+  }
+}
+
+// Pages sit flush left under their section.
+.sidebar-navigation .sidebar-section.depth1 {
+  padding-left: 0;
+}
+
+// Chapter numbers, shown in the sidebar only. The setup page and the how-to
+// pages have none. The numbers then match the file prefixes 1 to 8.
+.sidebar-navigation {
+  counter-reset: chapter;
+}
+
+.sidebar-section.depth1 .sidebar-link:not([href$="0-getting-setup.html"]):not([href*="howto/"]) {
+  counter-increment: chapter;
+
+  .menu-text {
+    display: inline-block;
+    padding-left: 1.8em;
+    text-indent: -1.8em;
+  }
+
+  .menu-text::before {
+    content: counter(chapter);
+    display: inline-block;
+    width: 1.8em;
+    text-indent: 0;
+    font-weight: 700;
+  }
+}
+
+// --- Breadcrumbs above the page title ---------------------------------------
+
+.quarto-page-breadcrumbs .breadcrumb {
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
 }
 

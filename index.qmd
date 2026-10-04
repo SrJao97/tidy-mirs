@@ -30,7 +30,7 @@ That's deliberate. R functions like `recipe()`, `mutate()`, and `tune()` name wh
 
 ## The course
 
-1. [Getting set up](0-gettting-setup.qmd): install R, Positron, and the packages this course uses.
+1. [Getting set up](0-getting-setup.qmd): install R, Positron, and the packages this course uses.
 2. [The full pipeline](1-full-pipeline.qmd): load, preprocess, tune, test, and predict, once, end to end, before any of it gets explained.
 3. [Loading spectral data](2-loading-data.qmd): read a folder of OPUS files and a wet chemistry CSV into one tibble.
 4. [Exploratory data analysis](3-eda.qmd): look at the spectra and the soil properties before modelling anything.
@@ -40,5 +40,11 @@ That's deliberate. R functions like `recipe()`, `mutate()`, and `tune()` name wh
 8. [Preparing OSSL](7-preparing-ossl.qmd): pull a working sample from the Open Soil Spectral Library.
 9. [Predicting exchangeable potassium using OSSL](8-kex-ossl-pipeline.qmd): the same pipeline, run end to end on a public, global dataset.
 
-Start at [Getting set up](0-gettting-setup.qmd) if your R environment isn't ready yet.
+### Going further
+
+These pages are not part of the main path. Each one assumes the pages it links to.
+
+- [Does the Savitzky-Golay setting matter?](howto/tuning-savitzky-golay.qmd): compare a few contrasting Savitzky-Golay settings under repeated cross-validation.
+
+Start at [Getting set up](0-getting-setup.qmd) if your R environment isn't ready yet.
 

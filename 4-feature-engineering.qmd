@@ -168,7 +168,7 @@ data_processed |> plot_spectra()
 
 Smoothing and differentiating both cost some data at the edges. `prospectr::savitzkyGolay()` trims `(w - 1) / 2` wavenumbers off each end. That's why the plotted spectrum below is narrower than the one above it.
 
-`SG_W = 15`, `SG_P = 3`, and `SG_M = 1` are sensible defaults here, tuned by eye on a dataset rather than picked arbitrarily. Tuning them properly, as part of a model fit, comes later in this course.
+`SG_W = 15`, `SG_P = 3`, and `SG_M = 1` are sensible defaults here, tuned by eye on a dataset rather than picked arbitrarily. [Does the Savitzky-Golay setting matter?](howto/tuning-savitzky-golay.qmd) compares them with other settings, as part of a model fit.
 
 ```{r}
 rec_sg <- rec |>

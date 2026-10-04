@@ -18,14 +18,14 @@ Open the folder in Positron, then install the pinned package versions from `renv
 renv::restore()
 ```
 
-`renv` installs the packages into a library inside the project. It does not change your main R library. If `renv::restore()` fails, `0-gettting-setup.qmd` lists the packages to install by hand.
+`renv` installs the packages into a library inside the project. It does not change your main R library. If `renv::restore()` fails, `0-getting-setup.qmd` lists the packages to install by hand.
 
 ## Course pages
 
 | Page | Content |
 |---|---|
 | `index.qmd` | Course home page and teaching approach |
-| `0-gettting-setup.qmd` | Install R, Positron and the packages |
+| `0-getting-setup.qmd` | Install R, Positron and the packages |
 | `1-full-pipeline.qmd` | The whole pipeline once, end to end |
 | `2-loading-data.qmd` | Read OPUS files and a wet chemistry CSV into one tibble |
 | `3-eda.qmd` | Explore the spectra and the soil properties |
@@ -34,6 +34,7 @@ renv::restore()
 | `6-evaluating-performance.qmd` | Repeated cross-validation, tuning and the one-standard-error rule |
 | `7-preparing-ossl.qmd` | Download OSSL and save a working sample for exchangeable potassium |
 | `8-kex-ossl-pipeline.qmd` | Predict exchangeable potassium from OSSL with PLS and Cubist |
+| `howto/tuning-savitzky-golay.qmd` | Compare contrasting Savitzky-Golay settings under repeated cross-validation |
 
 ## Project layout
 
