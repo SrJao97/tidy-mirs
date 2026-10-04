@@ -1,5 +1,5 @@
 ---
-title: "Features engineering"
+title: "Feature engineering"
 subtitle: "Build a `recipes` pipeline out of resampling, SNV, and Savitzky-Golay steps."
 author: Franck Albinet
 date: last-modified
@@ -33,13 +33,10 @@ SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
 ```{r}
 TARGET <- "potassium_cmolkg"
 
-# --- Preprocessing ----------------------------------------------------------
-RESAMPLE_BY <- 5L
-RESAMPLING_GRID <- seq(3995, 600, by = -5)
-SG_W        <- 15L
-SG_P        <- 3L
-SG_M        <- 1L
+source(here("R", "config.R"), echo = TRUE, keep.source = TRUE, max.deparse.length = Inf)
 ```
+
+The shared settings come from [`R/config.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/config.R). [The full pipeline](1-full-pipeline.qmd) explains how it works.
 
 ## Getting data
 
@@ -49,9 +46,9 @@ data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)
 
 ## Recipes
 
-`1-full-pipeline.qmd` already built and used a recipe once, without explaining it. This page is that explanation. A `recipe` in tidymodels is a specification of preprocessing steps, written once and reused everywhere a model needs data in the same shape. The [recipes package](https://recipes.tidymodels.org/) and the [tidymodels recipes guide](https://www.tidymodels.org/start/recipes/) cover the general vocabulary this page assumes, alongside the [Posit cheatsheets](https://posit.co/resources/cheatsheets/) already pointed to from the course homepage.
+[The full pipeline](1-full-pipeline.qmd) already built and used a recipe once, without explaining it. This page is that explanation. A `recipe` in tidymodels is a specification of preprocessing steps, written once and reused everywhere a model needs data in the same shape. The [recipes package](https://recipes.tidymodels.org/) and the [tidymodels recipes guide](https://www.tidymodels.org/start/recipes/) cover the general vocabulary this page assumes, alongside the [Posit cheatsheets](https://posit.co/resources/cheatsheets/) already pointed to from the course homepage.
 
-Base `recipes` ships steps for the usual tabular preprocessing, centring, scaling, dummy variables, but nothing for a spectrum. `step_snv()`, `step_sg()`, and `step_resample()`, defined in `R/steps.R`, close that gap.
+Base `recipes` ships steps for the usual tabular preprocessing, centring, scaling, dummy variables, but nothing for a spectrum. `step_snv()`, `step_sg()`, and `step_resample()`, defined in [`R/steps.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/steps.R), close that gap.
 
 Each one wraps a `prospectr` or `resemble` function, `prospectr::standardNormalVariate()`, `prospectr::savitzkyGolay()`, `prospectr::resample()`, inside the contract a `recipes` step needs: a constructor, `prep()`, `bake()`, `print()`, `tidy()`. That's what lets `step_snv()` sit in a recipe next to `step_log()` or any other tidymodels step. It gets ordered, tuned, and applied the same way every other step does.
 
@@ -113,7 +110,7 @@ None of the three steps below actually estimate anything from the training set a
 
 ### Resampling
 
-This step does two things. `step_log(all_outcomes(), base = 10)` log-scales the outcome, the fix for `potassium_cmolkg`'s skew discussed back in `2-loading-data.qmd` and `3-eda.qmd`. `step_resample()` interpolates every spectrum onto `RESAMPLING_GRID`, an evenly spaced set of wavenumbers 5 cm⁻¹ apart, versus the roughly 2 cm⁻¹ spacing `read_opus_tbl()` returns. That cuts the predictor count from 1707 columns to 680. It also guarantees every sample lands on the same wavenumber axis, even where the source instrument didn't.
+This step does two things. `step_log(all_outcomes(), base = 10)` log-scales the outcome, the fix for `potassium_cmolkg`'s skew discussed back in [Loading spectral data](2-loading-data.qmd) and [Exploratory data analysis](3-eda.qmd). `step_resample()` interpolates every spectrum onto `RESAMPLING_GRID`, an evenly spaced set of wavenumbers 5 cm⁻¹ apart, versus the roughly 2 cm⁻¹ spacing `read_opus_tbl()` returns. That cuts the predictor count from 1707 columns to 680. It also guarantees every sample lands on the same wavenumber axis, even where the source instrument didn't.
 
 ```{r}
 rec_res <- rec |>
@@ -192,4 +189,3 @@ data_processed <- bake(
 #| fig-height: 5
 data_processed |> plot_spectra()
 ```
-

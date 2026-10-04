@@ -32,7 +32,7 @@ SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
 
 ## Getting data
 
-This loads the same tibble `2-loading-data.qmd` builds, in one call.
+This loads the same tibble [Loading spectral data](2-loading-data.qmd) builds, in one call.
 
 ```{r}
 data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)
@@ -136,7 +136,7 @@ soil_long |>
   facet_wrap(~soil_prop, scales = "free")
 ```
 
-`carbon_org_perc` and `carbon_tot_perc` curve furthest from the line, the same properties `2-loading-data.qmd` flagged `potassium_cmolkg` for, only more so. Log-transforming pulls most of them back toward it:
+`carbon_org_perc` and `carbon_tot_perc` curve furthest from the line, the same properties [Loading spectral data](2-loading-data.qmd) flagged `potassium_cmolkg` for, only more so. Log-transforming pulls most of them back toward it:
 
 
 ```{r}
@@ -361,4 +361,3 @@ ggplot(
     y = "Absorbance"
   )
 ```
-

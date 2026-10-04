@@ -18,11 +18,11 @@ For me, four things make tidyverse and tidymodels worth building this course on.
 3. Build it once, reuse it again and again, on a new dataset, a new target, a colleague's laptop. 
 4. And building on tidyverse and tidymodels means building on a vast, expressive, mainstream ecosystem, one this course borrows rather than reinvents.
 
-Base `recipes` ships no steps for spectra. This course adds a handful, wrapping `prospectr` and `resemble` underneath. `4-feature-engineering.qmd` tells that story properly. Everything downstream of them is standard tidymodels. We won't reteach the tidyverse's own documentation, its books, or its cheatsheets. Where this course points at a reference instead of re-explaining it, follow the link. That reference will outlast this course.
+Base `recipes` ships no steps for spectra. This course adds a handful, wrapping `prospectr` and `resemble` underneath. [Feature engineering](4-feature-engineering.qmd) tells that story properly. Everything downstream of them is standard tidymodels. We won't reteach the tidyverse's own documentation, its books, or its cheatsheets. Where this course points at a reference instead of re-explaining it, follow the link. That reference will outlast this course.
 
 ## How this course teaches
 
-Each page runs top-down. It opens with the full step at the level you'd actually use day to day, one function call that returns a fitted model and a table of results. Only then does it open up to show what's inside. The course runs the same way: `1-full-pipeline.qmd` assembles the whole thing once, then every page after it opens up one piece.
+Each page runs top-down. It opens with the full step at the level you'd actually use day to day, one function call that returns a fitted model and a table of results. Only then does it open up to show what's inside. The course runs the same way: [The full pipeline](1-full-pipeline.qmd) assembles the whole thing once, then every page after it opens up one piece.
 
 That's deliberate. R functions like `recipe()`, `mutate()`, and `tune()` name what they do closely enough that someone with limited R experience can run the pipeline and follow its logic, even before they could write any of it themselves. Only later does peeling back a layer become worth the time. Every page that unpacks a function names its source file. Digging further is always one open file and the R console away.
 
@@ -37,8 +37,9 @@ That's deliberate. R functions like `recipe()`, `mutate()`, and `tune()` name wh
 5. [Feature engineering](4-feature-engineering.qmd): build a `recipes` pipeline out of resampling, SNV, and Savitzky-Golay steps.
 6. [Outlier detection](5-outlier-detection.qmd): use PCA on the preprocessed spectra to find samples a model shouldn't trust.
 7. [Evaluating performance](6-evaluating-performance.qmd): split the data, fit a model, and score it with tidymodels.
-8. [Preparing OSSL](7-preparing-ossl.qmd): pull a working sample from the Open Soil Spectral Library.
-9. [Predicting exchangeable potassium using OSSL](8-kex-ossl-pipeline.qmd): the same pipeline, run end to end on a public, global dataset.
+8. [Preparing a model for inference](7-preparing-for-inference.qmd): save a fitted model, load it again, and predict new spectra.
+9. [Preparing OSSL](8-preparing-ossl.qmd): pull a working sample from the Open Soil Spectral Library.
+10. [Predicting exchangeable potassium using OSSL](9-kex-ossl-pipeline.qmd): the same pipeline, run end to end on a public, global dataset.
 
 ### Going further
 
@@ -47,4 +48,3 @@ These pages are not part of the main path. Each one assumes the pages it links t
 - [Does the Savitzky-Golay setting matter?](howto/tuning-savitzky-golay.qmd): compare a few contrasting Savitzky-Golay settings under repeated cross-validation.
 
 Start at [Getting set up](0-getting-setup.qmd) if your R environment isn't ready yet.
-

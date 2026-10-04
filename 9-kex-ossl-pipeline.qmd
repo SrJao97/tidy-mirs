@@ -13,7 +13,7 @@ execute:
   message: false
 ---
 
-This page runs the pipeline from the earlier pages on the OSSL working sample built in `7-preparing-ossl.qmd`: 4,548 soils with exchangeable potassium (Kex) and a MIR spectrum. It fits two models and compares them on the same test set. The first is PLS regression, as on the earlier pages. The second is Cubist, a rule-based model. The OSSL team found Cubist to be the best of the algorithms they tested ([Safanelli et al., 2025](https://doi.org/10.1371/journal.pone.0296545)).
+This page runs the pipeline from the earlier pages on the OSSL working sample built in [Preparing OSSL](8-preparing-ossl.qmd): 4,548 soils with exchangeable potassium (Kex) and a MIR spectrum. It fits two models and compares them on the same test set. The first is PLS regression, as on the earlier pages. The second is Cubist, a rule-based model. The OSSL team found Cubist to be the best of the algorithms they tested ([Safanelli et al., 2025](https://doi.org/10.1371/journal.pone.0296545)).
 
 ```{r}
 library(here)
@@ -34,11 +34,10 @@ SRC_FILE = here("data/ossl_mir_k_sample.rds")
 ```{r}
 TARGET <- "kex"
 
-# --- Preprocessing ----------------------------------------------------------
-SG_W        <- 15L   
-SG_P        <- 3L    
-SG_M        <- 1L  
+source(here("R", "config.R"), echo = TRUE, keep.source = TRUE, max.deparse.length = Inf)
 ```
+
+The shared settings come from [`R/config.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/config.R). [The full pipeline](1-full-pipeline.qmd) explains how it works.
 
 
 ## Getting data
@@ -59,7 +58,7 @@ data |>
 
 ## Splitting the data
 
-With 4,548 samples, one validation set replaces cross-validation. `initial_validation_split()` splits the data three ways: 70% for training, 20% for validation and the remaining 10% for testing. That gives 3,183, 910 and 455 samples. Each candidate model is fitted on the training set and scored on the validation set. The test set is used once, at the end, as in `6-evaluating-performance.qmd`.
+With 4,548 samples, one validation set replaces cross-validation. `initial_validation_split()` splits the data three ways: 70% for training, 20% for validation and the remaining 10% for testing. That gives 3,183, 910 and 455 samples. Each candidate model is fitted on the training set and scored on the validation set. The test set is used once, at the end, as in [Evaluating performance](6-evaluating-performance.qmd).
 
 A validation set of 910 samples gives a stable score on its own. Cross-validation would fit every candidate 5 or 10 times. That costs much more time for little gain at this size.
 
@@ -73,7 +72,7 @@ split
 
 ## Pre-processing recipe
 
-The recipe is the one from `4-feature-engineering.qmd`, without `step_resample()`. OSSL spectra are already on one common grid, every 2 cm⁻¹ from 600 to 4000 cm⁻¹, as the range check above shows.
+The recipe is the one from [Feature engineering](4-feature-engineering.qmd), without `step_resample()`. OSSL spectra are already on one common grid, every 2 cm⁻¹ from 600 to 4000 cm⁻¹, as the range check above shows.
 
 ```{r}
 spc_cols <- names(data)[startsWith(names(data), "wn_")]
@@ -110,7 +109,7 @@ plot_obs_pred <- function(res, title = NULL) {
 
 ### Tuning the number of components
 
-The PLS part follows `6-evaluating-performance.qmd`. With 3,183 training samples, many more components can be useful than with the 49 RT samples. The grid runs from 5 to 100 components, in steps of 5.
+The PLS part follows [Evaluating performance](6-evaluating-performance.qmd). With 3,183 training samples, many more components can be useful than with the 49 RT samples. The grid runs from 5 to 100 components, in steps of 5.
 
 ```{r}
 pls_spec <- pls(num_comp = tune()) |>
@@ -300,8 +299,8 @@ Cubist is also a flexible model: each rule fits its own linear model to a differ
 
 The working sample keeps 10% of the OSSL samples that have both a Kex value and a MIR spectrum. To use more:
 
-1. In `7-preparing-ossl.qmd`, raise `prop` in `slice_sample()`, or remove that line to keep all of them, about 45,000 samples.
+1. In [Preparing OSSL](8-preparing-ossl.qmd), raise `prop` in `slice_sample()`, or remove that line to keep all of them, about 45,000 samples.
 2. Run that page again to save the larger sample. It overwrites `data/ossl_mir_k_sample.rds`.
 3. Run this page again. Fitting takes longer as the data grows, especially for Cubist with many committees.
 
-To compare models fairly, repeat the comparison over several random splits, or use cross-validation as in `6-evaluating-performance.qmd`. Then compare the spread of the scores, not only their means. That is how @fig-learning-curves was built.
+To compare models fairly, repeat the comparison over several random splits, or use cross-validation as in [Evaluating performance](6-evaluating-performance.qmd). Then compare the spread of the scores, not only their means. That is how @fig-learning-curves was built.

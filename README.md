@@ -18,29 +18,30 @@ Open the folder in Positron, then install the pinned package versions from `renv
 renv::restore()
 ```
 
-`renv` installs the packages into a library inside the project. It does not change your main R library. If `renv::restore()` fails, `0-getting-setup.qmd` lists the packages to install by hand.
+`renv` installs the packages into a library inside the project. It does not change your main R library. If `renv::restore()` fails, [Getting set up](0-getting-setup.qmd) lists the packages to install by hand.
 
 ## Course pages
 
 | Page | Content |
 |---|---|
 | `index.qmd` | Course home page and teaching approach |
-| `0-getting-setup.qmd` | Install R, Positron and the packages |
-| `1-full-pipeline.qmd` | The whole pipeline once, end to end |
-| `2-loading-data.qmd` | Read OPUS files and a wet chemistry CSV into one tibble |
-| `3-eda.qmd` | Explore the spectra and the soil properties |
-| `4-feature-engineering.qmd` | Resampling, SNV and Savitzky-Golay as `recipes` steps |
-| `5-outlier-detection.qmd` | PCA and Mahalanobis distance to find outliers |
-| `6-evaluating-performance.qmd` | Repeated cross-validation, tuning and the one-standard-error rule |
-| `7-preparing-ossl.qmd` | Download OSSL and save a working sample for exchangeable potassium |
-| `8-kex-ossl-pipeline.qmd` | Predict exchangeable potassium from OSSL with PLS and Cubist |
+| [`0-getting-setup.qmd`](0-getting-setup.qmd) | Install R, Positron and the packages |
+| [`1-full-pipeline.qmd`](1-full-pipeline.qmd) | The whole pipeline once, end to end |
+| [`2-loading-data.qmd`](2-loading-data.qmd) | Read OPUS files and a wet chemistry CSV into one tibble |
+| [`3-eda.qmd`](3-eda.qmd) | Explore the spectra and the soil properties |
+| [`4-feature-engineering.qmd`](4-feature-engineering.qmd) | Resampling, SNV and Savitzky-Golay as `recipes` steps |
+| [`5-outlier-detection.qmd`](5-outlier-detection.qmd) | PCA and Mahalanobis distance to find outliers |
+| [`6-evaluating-performance.qmd`](6-evaluating-performance.qmd) | Repeated cross-validation, tuning and the one-standard-error rule |
+| [`7-preparing-for-inference.qmd`](7-preparing-for-inference.qmd) | Save a fitted model, load it again and predict new spectra |
+| [`8-preparing-ossl.qmd`](8-preparing-ossl.qmd) | Download OSSL and save a working sample for exchangeable potassium |
+| [`9-kex-ossl-pipeline.qmd`](9-kex-ossl-pipeline.qmd) | Predict exchangeable potassium from OSSL with PLS and Cubist |
 | `howto/tuning-savitzky-golay.qmd` | Compare contrasting Savitzky-Golay settings under repeated cross-validation |
 
 ## Project layout
 
-- `R/` holds the helper scripts that the pages load with `source()`. `R/steps.R` defines the spectral `recipes` steps `step_resample()`, `step_snv()` and `step_sg()`, which wrap functions from `prospectr`. `R/io.R` reads Bruker OPUS files. `R/prepare_data.R` builds the RT dataset. `R/split.R` has the Kennard-Stone split. `R/plots.R` has `plot_spectra()`.
+- `R/` holds the helper scripts that the pages load with `source()`. [`R/steps.R`](R/steps.R) defines the spectral `recipes` steps `step_resample()`, `step_snv()` and `step_sg()`, which wrap functions from `prospectr`. [`R/io.R`](R/io.R) reads Bruker OPUS files. [`R/prepare_data.R`](R/prepare_data.R) builds the RT dataset. [`R/split.R`](R/split.R) has the Kennard-Stone split. [`R/plots.R`](R/plots.R) has `plot_spectra()`. [`R/config.R`](R/config.R) holds the settings several pages share: the samples left out, the preprocessing settings and the outlier cutoff.
 - `data/RT_spectra/` holds the OPUS files for the 70 RT soil samples, with 4 scans per sample. `data/RT_wetchem_soildata.csv` holds their wet chemistry.
-- `data/ossl_mir_k_sample.rds` is the OSSL working sample that `7-preparing-ossl.qmd` saves: 4,548 samples with exchangeable potassium and a MIR spectrum.
+- `data/ossl_mir_k_sample.rds` is the OSSL working sample that [Preparing OSSL](8-preparing-ossl.qmd) saves: 4,548 samples with exchangeable potassium and a MIR spectrum.
 - `_freeze/` stores the results of each page's code. Commit it with the pages.
 
 ## Build the website
@@ -59,9 +60,9 @@ quarto render
 
 The project uses `freeze: auto`. Quarto runs a page's code again only when that page's source changes. Some pages take minutes to run:
 
-- `7-preparing-ossl.qmd` downloads and reads the whole OSSL file. `data/ossl_mir_k_sample.rds` is in the repository, so you need to run this page only to change the sample.
-- `8-kex-ossl-pipeline.qmd` tunes PLS and Cubist models in about 3 minutes.
-- `6-evaluating-performance.qmd` fits 1,900 PLS models for repeated cross-validation.
+- [Preparing OSSL](8-preparing-ossl.qmd) downloads and reads the whole OSSL file. `data/ossl_mir_k_sample.rds` is in the repository, so you need to run this page only to change the sample.
+- [Predicting exchangeable potassium using OSSL](9-kex-ossl-pipeline.qmd) tunes PLS and Cubist models in about 3 minutes.
+- [Evaluating performance](6-evaluating-performance.qmd) fits 1,900 PLS models for repeated cross-validation.
 
 To work on one page, preview only that page, for example `quarto preview 5-outlier-detection.qmd`.
 

@@ -1,0 +1,281 @@
+---
+title: "Preparing a model for inference"
+subtitle: "Save a fitted model, load it again, and predict new spectra."
+author: Franck Albinet
+date: last-modified
+format:
+  html:
+    toc: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+The pages before this one fit models and score them. Every sample they use has a lab value. Inference is what comes next: predicting a soil property from a new spectrum, with no lab value. This page takes the 7-component model chosen in [Evaluating performance](6-evaluating-performance.qmd) and prepares it for that job. It then saves the model to a file, loads it again as a new R session would, and predicts a few new samples.
+
+```{r}
+library(here)
+library(tidyverse)
+library(tidymodels)
+library(plsmod)
+library(tailor)
+source(here("R", "prepare_data.R"))
+source(here("R", "steps.R"))
+source(here("R", "split.R"))
+theme_set(theme_bw())
+tidymodels_prefer()
+```
+
+References:
+
+- [Tidy Modeling with R, chapter 8: Feature engineering with recipes](https://www.tmwr.org/recipes.html)
+- [`recipes::update_role_requirements()`](https://recipes.tidymodels.org/reference/update_role_requirements.html)
+- [tailor: post-processing model predictions](https://tailor.tidymodels.org/) and [`adjust_predictions_custom()`](https://tailor.tidymodels.org/reference/adjust_predictions_custom.html)
+
+```{r}
+SPECTRA_DIR    <- here("data/RT_spectra")
+SOIL_PROP_FILE <- here("data/RT_wetchem_soildata.csv")
+MODEL_FILE     <- here("models", "carbon_pls.rds")
+
+TARGET   <- "carbon_tot_perc"
+NUM_COMP <- 7L
+
+source(here("R", "config.R"), echo = TRUE, keep.source = TRUE, max.deparse.length = Inf)
+```
+
+The shared settings come from [`R/config.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/config.R). [The full pipeline](1-full-pipeline.qmd) explains how it works.
+
+## Data and new spectra
+
+The data and the split are the same as in [Evaluating performance](6-evaluating-performance.qmd).
+
+```{r}
+data  <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE) |> filter(!smp_id %in% EXCLUDED_SAMPLES)
+split <- kennard_stone_split(data, prop = 50/70, cols = starts_with("wn_"))
+```
+
+We have no truly new samples. Instead, we use the raw OPUS files of 4 test samples, plus `RT_44`. `RT_44` is one of the two samples [Outlier detection](5-outlier-detection.qmd) flagged, and the model never saw it. These files stand in for a batch of new samples fresh from the spectrometer.
+
+`prepare_spectra()`, from [`R/prepare_data.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/prepare_data.R), reads OPUS files and averages the replicate scans of each sample. `prepare_rt()` does the same and then joins the lab data. New samples have no lab data, so `prepare_spectra()` is all they need.
+
+```{r}
+new_ids <- c(head(testing(split)$smp_id, 4), "RT_44")
+
+new_files <- list.files(SPECTRA_DIR, full.names = TRUE)
+new_files <- new_files[str_extract(basename(new_files), "RT_\\d+") %in% new_ids]
+basename(new_files)
+```
+
+```{r}
+new_spectra <- prepare_spectra(new_files)
+new_spectra |> select(smp_id, 1:4)
+```
+
+`new_spectra` has `smp_id` and the spectral columns. It has no `carbon_tot_perc` and none of the other lab columns.
+
+## Why the page 6 workflow cannot predict new spectra
+
+A recipe runs at two moments. It runs when the workflow is fitted, on the training data. It runs again every time the workflow predicts, on the new data. The same steps apply at both moments, which is the point: a new spectrum gets exactly the resampling, SNV and Savitzky-Golay filter the training spectra got.
+
+Steps on predictors work at both moments. Two parts of the page 6 recipe do not. The chunks below rebuild that workflow, fit it on the training set, and try to predict `new_spectra`.
+
+```{r}
+spc_cols  <- names(data)[startsWith(names(data), "wn_")]
+meta_cols <- setdiff(names(data), c(TARGET, spc_cols))
+
+pls_spec <- pls(num_comp = NUM_COMP) |>
+  set_engine("mixOmics") |>
+  set_mode("regression")
+
+rec_page6 <- recipe(data) |>
+  update_role(all_of(TARGET),    new_role = "outcome") |>
+  update_role(all_of(spc_cols),  new_role = "predictor") |>
+  update_role(all_of(meta_cols), new_role = "metadata") |>
+  step_log(all_outcomes(), base = 10) |>
+  step_resample(grid = RESAMPLING_GRID) |>
+  step_snv() |>
+  step_sg(w = SG_W, p = SG_P, m = SG_M)
+
+wf_page6 <- workflow() |>
+  add_recipe(rec_page6) |>
+  add_model(pls_spec) |>
+  fit(training(split))
+```
+
+```{r}
+#| error: true
+predict(wf_page6, new_spectra)
+```
+
+The first problem is the metadata columns. By default, recipes requires every column it saw at fitting time, whatever its role. The lab columns have the role "metadata", so the recipe asks for them. This default is a safety net: some steps use non-predictor columns, and a missing column should stop the prediction rather than pass unnoticed. Here, the lab columns are only carried along. `update_role_requirements("metadata", bake = FALSE)` says so: the recipe needs them at fitting time, but not when it bakes new data.
+
+```{r}
+#| error: true
+wf_meta <- workflow() |>
+  add_recipe(rec_page6 |> update_role_requirements("metadata", bake = FALSE)) |>
+  add_model(pls_spec) |>
+  fit(training(split))
+
+predict(wf_meta, new_spectra)
+```
+
+The second problem is `step_log()`. It acts on the outcome, and it also runs at prediction time. A new sample has no carbon value to log. This is a general limit of tidymodels: a recipe is for transforms that apply to every sample, and the outcome exists only for the training samples.
+
+The fix is to log the outcome before the recipe, in the data itself. The model is the same. It still learns and predicts log10 values. The recipe now contains only steps that a new spectrum can go through.
+
+## An inference-ready workflow
+
+```{r}
+data_log <- data |> mutate(across(all_of(TARGET), log10))
+split    <- kennard_stone_split(data_log, prop = 50/70, cols = starts_with("wn_"))
+
+rec <- recipe(data_log) |>
+  update_role(all_of(TARGET),    new_role = "outcome") |>
+  update_role(all_of(spc_cols),  new_role = "predictor") |>
+  update_role(all_of(meta_cols), new_role = "metadata") |>
+  update_role_requirements("metadata", bake = FALSE) |>
+  step_resample(grid = RESAMPLING_GRID) |>
+  step_snv() |>
+  step_sg(w = SG_W, p = SG_P, m = SG_M)
+
+wf <- workflow() |>
+  add_recipe(rec) |>
+  add_model(pls_spec)
+```
+
+`kennard_stone_split()` works on the spectra only, so the split is the same as before. `last_fit()` scores the test set in log10 units, as on page 6.
+
+```{r}
+final_res <- last_fit(wf, split)
+collect_metrics(final_res)
+```
+
+### Back to percent with a post-processor
+
+The workflow predicts log10 values. Whoever uses the model wants carbon in percent. Leaving the back-transform to them means everyone must remember `10^.pred`, and nobody must forget it.
+
+A tailor does it inside the workflow. The tailor package is the tidymodels post-processor. A recipe changes the data before it reaches the model. A tailor changes the predictions after the model makes them. `adjust_predictions_custom()` applies any expression to the predictions, here `10^.pred`.
+
+```{r}
+to_percent <- tailor() |>
+  adjust_predictions_custom(.pred = 10^.pred)
+```
+
+We add the tailor only to the copy of the workflow we save. The evaluation above stays in log10 units. During evaluation, the observed values are in log10, because we logged them in `data_log`. A tailor at that stage would compare predictions in percent with observed values in log10.
+
+```{r}
+model <- wf |>
+  add_tailor(to_percent) |>
+  fit(training(split))
+
+model
+```
+
+The printout now lists three parts: the recipe, the model and the post-processor.
+
+## Is a new spectrum within the model's range?
+
+A model only knows the kind of spectra it was trained on. For a spectrum unlike any of them, it still returns a number, but nothing supports that number. The prediction itself gives no warning. A separate check has to.
+
+The check uses the method from [Outlier detection](5-outlier-detection.qmd). We run the training spectra through the fitted recipe and fit a PCA on the result, keeping the components that explain 99% of the variance. A new spectrum is projected onto those components, and we measure its scaled Mahalanobis distance from the centre of the training spectra. A new spectrum beyond the cutoff is unusual compared with the training set, and its prediction needs caution.
+
+`extract_recipe()` returns the fitted recipe from the workflow. `bake()` applies it.
+
+```{r}
+train_baked <- bake(extract_recipe(model), new_data = training(split)) |>
+  select(starts_with("wn_"))
+
+pca_full <- prcomp(train_baked, center = TRUE, scale. = FALSE)
+n_pc <- which(cumsum(pca_full$sdev^2) / sum(pca_full$sdev^2) >= 0.99)[1]
+pca <- prcomp(train_baked, center = TRUE, scale. = FALSE, rank. = n_pc)
+n_pc
+```
+
+On [Outlier detection](5-outlier-detection.qmd), `resemble::dissimilarity()` computes the distance. It estimates the covariance from `Xr` and `Xu` together. That is fine there, because `Xu` is only the centre of the scores. Here, `Xu` would be the batch of new spectra. An unusual new spectrum would then change the covariance, its own distance and the distances of the other new spectra, and the result would depend on which spectra happen to arrive together. The covariance must come from the training spectra alone.
+
+We therefore compute the same scaled distance in base R. PCA scores are uncorrelated, and the variance of each one is `pca$sdev^2`, estimated on the training spectra. The squared distance is the sum of the squared scores, each divided by its variance. As in `resemble`, we divide by the number of components before taking the square root.
+
+```{r}
+scaled_distance <- function(pca, x) {
+  scores <- predict(pca, x)
+  sqrt(rowSums(sweep(scores^2, 2, pca$sdev[seq_len(ncol(scores))]^2, "/")) / ncol(scores))
+}
+```
+
+The cutoff, `OUTLIER_CUTOFF` in `R/config.R`, is the one chosen by eye on [Outlier detection](5-outlier-detection.qmd). The distances of the training spectra show how it sits against the spectra the model knows.
+
+```{r}
+train_dist <- scaled_distance(pca, train_baked)
+summary(train_dist)
+```
+
+## Saving the model
+
+The saved file holds everything a prediction needs: the fitted workflow, the PCA and the cutoff. `saveRDS()` writes any R object to a file.
+
+```{r}
+inference_kit <- list(model = model, pca = pca, cutoff = OUTLIER_CUTOFF)
+
+dir.create(dirname(MODEL_FILE), showWarnings = FALSE)
+saveRDS(inference_kit, MODEL_FILE)
+```
+
+## Using the model in a new session
+
+The chunk below is what a new R session runs. `rm()` first clears every object except `new_files`, the list of OPUS files to predict. Nothing else from this page can help. Only the libraries, the course scripts and the saved file remain.
+
+[`R/steps.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/steps.R) is the one dependency that is easy to miss. The saved workflow stores the `step_snv()`, `step_sg()` and `step_resample()` steps, but not the code that runs them. That code lives in [`R/steps.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/steps.R), so it must be sourced before `predict()`. Without it, prediction fails. Anyone you share the model with also needs that script. A package would remove this dependency, and is the right home for these steps in the long run.
+
+```{r}
+rm(list = setdiff(ls(), "new_files"))
+
+library(here)
+library(tidyverse)
+library(tidymodels)
+source(here("R", "prepare_data.R"))
+source(here("R", "steps.R"))
+
+kit <- readRDS(here("models", "carbon_pls.rds"))
+```
+
+`predict_carbon()` predicts each new spectrum and checks its distance in one call.
+
+```{r}
+predict_carbon <- function(kit, spectra) {
+  baked  <- bake(extract_recipe(kit$model), new_data = spectra) |>
+    select(starts_with("wn_"))
+  scores <- predict(kit$pca, baked)
+  dist   <- sqrt(rowSums(sweep(scores^2, 2, kit$pca$sdev[seq_len(ncol(scores))]^2, "/")) / ncol(scores))
+
+  spectra |>
+    select(smp_id) |>
+    bind_cols(predict(kit$model, spectra)) |>
+    mutate(distance = dist, in_range = dist <= kit$cutoff)
+}
+```
+
+```{r}
+preds <- predict_carbon(kit, prepare_spectra(new_files))
+preds
+```
+
+`.pred` is total carbon in percent. The tailor did the back-transform.
+
+The 4 test samples are within range. `RT_44` is not: its distance is well beyond the cutoff. The model still returns a prediction for it, close to 0% carbon, and nothing in `.pred` alone says it is suspect. Without the range check, this number would go into a report like the others.
+
+The test samples have lab values, so we can compare.
+
+```{r}
+lab <- read_csv(here("data/RT_wetchem_soildata.csv"), show_col_types = FALSE) |>
+  select(smp_id = sample_id, observed = carbon_tot_perc)
+
+preds |> left_join(lab, by = "smp_id")
+```
+
+## Before using a model for real
+
+- **Refit on all samples.** The model above learnt from the 48 training samples, so that the test score stays meaningful. Once you trust the test score, refit the same workflow on all the samples. More data usually gives a better model.
+- **Measure new samples the same way.** The model assumes the same instrument, sample preparation and number of replicate scans as the training set. The range check catches large differences, not all of them.
+- **Keep the package versions.** A saved workflow is safest with the package versions that fitted it. `renv.lock` records them.

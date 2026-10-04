@@ -58,7 +58,7 @@ src = "https://storage.googleapis.com/soilspec4gg-public/ossl_all_L0_v1.2.csv.gz
 dest = here("data", "ossl_mir_k_sample.rds")
 ```
 
-`read_csv()` downloads and reads the file in one step. The file is large. This takes a while and needs plenty of memory. You only need to run this page once. `8-kex-ossl-pipeline.qmd` reads the small file saved at the end, not the full library.
+`read_csv()` downloads and reads the file in one step. The file is large. This takes a while and needs plenty of memory. You only need to run this page once. [Predicting exchangeable potassium using OSSL](9-kex-ossl-pipeline.qmd) reads the small file saved at the end, not the full library.
 
 ```{r}
 data = read_csv(src)

@@ -29,10 +29,11 @@ website:
           - 4-feature-engineering.qmd
           - 5-outlier-detection.qmd
           - 6-evaluating-performance.qmd
+          - 7-preparing-for-inference.qmd
       - section: "Worked example"
         contents:
-          - 7-preparing-ossl.qmd
-          - 8-kex-ossl-pipeline.qmd
+          - 8-preparing-ossl.qmd
+          - 9-kex-ossl-pipeline.qmd
       - section: "Going further"
         contents:
           - howto/tuning-savitzky-golay.qmd
@@ -65,4 +66,3 @@ execute:
 knitr:
   opts_chunk:
     fig.align: center
-

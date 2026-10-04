@@ -26,14 +26,16 @@ tidymodels_prefer()
 SPECTRA_DIR = here("data/RT_spectra")
 SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
 TARGET <- "carbon_tot_perc"
-RESAMPLING_GRID <- seq(3995, 600, by = -5)
+source(here("R", "config.R"), echo = TRUE, keep.source = TRUE, max.deparse.length = Inf)
 ```
 
 
+[`R/config.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/config.R) holds the settings that several pages share: the samples left out, the preprocessing settings and the outlier cutoff. Every page loads it the same way. `echo = TRUE` prints each line of the file as R runs it, so the output above shows every value the page uses. `keep.source = TRUE` keeps the comments, and `max.deparse.length = Inf` stops long lines from being cut. To try another setting, change it in `R/config.R` and render the pages again.
+
 ```{r}
 # --- Loading ------------------------------------------------------------------
-# RT_44 dropped as a known outlier -> 5-outlier-detection.qmd
-data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE) |> filter(smp_id != "RT_44")
+# EXCLUDED_SAMPLES dropped as known outliers -> 5-outlier-detection.qmd
+data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE) |> filter(!smp_id %in% EXCLUDED_SAMPLES)
 ```
 
 ```{r}
@@ -49,7 +51,7 @@ rec <- recipe(data) |>
   step_log(all_outcomes(), base = 10) |>
   step_resample(grid = RESAMPLING_GRID) |>
   step_snv() |>
-  step_sg(w = 15L, p = 3L, m = 1L)
+  step_sg(w = SG_W, p = SG_P, m = SG_M)
 
 # --- Tuning -----------------------------------------------------------------------
 # search num_comp, pick the best, lock it in -> 6-evaluating-performance.qmd

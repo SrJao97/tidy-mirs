@@ -26,7 +26,9 @@ tidymodels_prefer()
 ```
 
 References:
+
 - [`recipes` R package (Tidymodels)](https://www.tidymodels.org/start/recipes/)
+- Wadoux, A. M. J.-C., Malone, B., Minasny, B., Fajardo, M. and McBratney, A. B. (2021). [*Soil Spectral Inference with R*](https://doi.org/10.1007/978-3-030-64896-1). Springer, Cham.
 
 ```{r}
 SPECTRA_DIR = here("data/RT_spectra")
@@ -36,13 +38,10 @@ SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
 ```{r}
 TARGET <- "clay_perc"
 
-# --- Preprocessing ----------------------------------------------------------
-RESAMPLE_BY <- 5L
-RESAMPLING_GRID <- seq(3995, 600, by = -5)
-SG_W        <- 15L 
-SG_P        <- 3L 
-SG_M        <- 1L
+source(here("R", "config.R"), echo = TRUE, keep.source = TRUE, max.deparse.length = Inf)
 ```
+
+The shared settings come from [`R/config.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/config.R). [The full pipeline](1-full-pipeline.qmd) explains how it works.
 
 
 ## Getting data
@@ -77,11 +76,13 @@ rec_prep |> summary()
 
 ## Principal Component Analysis
 
+`threshold = 0.99` keeps as many components as needed to explain 99% of the variance of the preprocessed spectra. This is the rule used by @wadoux2021, and the one `kennard_stone_split()` in [`R/split.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/split.R) uses. `center = TRUE` subtracts the mean spectrum before the PCA. SNV does not do this: it centres each spectrum on its own mean, across wavenumbers. PCA needs each wavenumber centred on its mean across samples. Without that, the first component describes the average spectrum instead of the differences between samples.
+
 ```{r}
 rec_pca <- rec_prep |>
   step_pca(
     all_predictors(),
-    num_comp = 10,
+    threshold = 0.99,
     options = list(
       center = TRUE,
       scale. = FALSE
@@ -210,23 +211,53 @@ data_processed |> plot_spectra(highlight = c("RT_44", "RT_22"))
 
 ### Mahalanobis distance in feature space
 
-The 2D checks above use only PC01 and PC02, and treat both axes as if they had the same spread. Mahalanobis distance from the centroid uses all retained components and scales each one by its own variance. PCA scores are orthogonal, so their covariance matrix is close to diagonal, and base R's `mahalanobis()` is enough. It returns the squared distance, so we take the square root.
+The 2D checks above use only PC01 and PC02, and treat both axes as if they had the same spread. Mahalanobis distance from the centre of the scores uses all retained components and scales each one by its own variance.
 
-Squared Mahalanobis distance approximately follows a chi-squared distribution with degrees of freedom equal to the number of variables. We use this to set the cutoff, instead of a fixed value such as 3. A fixed value of 3 is close to `sqrt(qchisq(0.975, df = 3))`, so it suits about 3 components, not 10.
+We compute it with `resemble::dissimilarity()` and `diss_mahalanobis()`, as in @wadoux2021. `Xr` holds the scores of all samples. `Xu` holds the point to measure from, here the centre of the scores.
 
 ```{r}
-ALPHA <- 0.975
-
 pc_cols <- names(scores)[startsWith(names(scores), "PC")]
 X <- scores |> select(all_of(pc_cols)) |> as.matrix()
 
-feat_cutoff <- sqrt(qchisq(ALPHA, df = length(pc_cols)))
-feat_cutoff
+scores <- scores |>
+  mutate(dist_feat = as.vector(resemble::dissimilarity(
+    Xr = X,
+    Xu = t(colMeans(X)),
+    diss_method = resemble::diss_mahalanobis(center = FALSE, scale = FALSE)
+  )$dissimilarity))
+```
+
+`resemble` divides the squared distance by the number of components before taking the square root. Each component adds about one unit to the squared distance of a typical sample. Without the division, distances grow with the number of components, and a value means something different for every dataset and every preprocessing. After the division, a typical sample sits near 1, however many components the 99% rule keeps. This also puts our values on the same scale as `resemble` and @wadoux2021.
+
+### Choosing a cutoff
+
+There is no correct cutoff. We look at the distances, choose a value that separates the samples that stand out, and then check those samples one by one. The histogram shows the overall shape. The ranked list shows where the gaps are.
+
+```{r}
+#| fig-width: 7
+#| fig-height: 3
+ggplot(scores, aes(dist_feat)) +
+  geom_histogram(bins = 40, fill = "steelblue", alpha = 0.8) +
+  labs(x = "Scaled Mahalanobis distance (PC scores)", y = "Count")
 ```
 
 ```{r}
-scores <- scores |>
-  mutate(dist_feat = sqrt(mahalanobis(X, colMeans(X), cov(X))))
+scores |>
+  arrange(desc(dist_feat)) |>
+  select(smp_id, dist_feat, clay_perc, carbon_org_perc) |>
+  head(10)
+```
+
+The rule of thumb in @wadoux2021 flags samples above 3. It suits large datasets. With few samples, the scaled distance has a ceiling: a sample that helped estimate the centre and the covariance cannot exceed $\sqrt{(n-1)^2 / (n\,p)}$, with $n$ samples and $p$ components. Here that is `r round(sqrt((nrow(X) - 1)^2 / (nrow(X) * ncol(X))), 2)`, so a cutoff of 3 could never flag anything.
+
+We set the cutoff by eye. `RT_44` and `RT_42` are at about 2.0, the ceiling itself. The next sample, `RT_39`, is at about 1.75. We put the cutoff in that gap, at 1.9, and record it as `OUTLIER_CUTOFF` in `R/config.R`. [Preparing a model for inference](7-preparing-for-inference.qmd) uses the same value. To try another cutoff, change it there and render both pages again.
+
+```{r}
+flagged <- scores |>
+  filter(dist_feat > OUTLIER_CUTOFF) |>
+  arrange(desc(dist_feat)) |>
+  pull(smp_id)
+flagged
 ```
 
 ```{r}
@@ -234,20 +265,21 @@ scores <- scores |>
 #| fig-height: 3
 ggplot(scores, aes(dist_feat)) +
   geom_histogram(bins = 40, fill = "steelblue", alpha = 0.8) +
-  geom_vline(xintercept = feat_cutoff, linetype = "dashed", colour = "firebrick") +
-  labs(x = "Mahalanobis distance (PC scores)", y = "Count")
+  geom_vline(xintercept = OUTLIER_CUTOFF, linetype = "dashed", colour = "firebrick") +
+  labs(x = "Scaled Mahalanobis distance (PC scores)", y = "Count")
 ```
 
+A distance only says that a spectrum is unusual. The spectra themselves show how. The plot below highlights the flagged samples against the others, after SNV.
+
 ```{r}
-scores |>
-  filter(dist_feat > feat_cutoff) |>
-  arrange(desc(dist_feat)) |>
-  select(smp_id, dist_feat, clay_perc, carbon_org_perc)
+#| fig-width: 9
+#| fig-height: 3
+data_processed |> plot_spectra(highlight = flagged)
 ```
 
 ### Distance in target space
 
-We apply the same method to the soil properties. `clay_perc` is already log10-transformed by the recipe, which is the space the model uses. Samples with a missing value are dropped. With 2 properties, the cutoff uses `df = 2`.
+We apply the same method to the soil properties. `clay_perc` is already log10-transformed by the recipe, which is the space the model uses. Samples with a missing value are dropped. With 2 properties, the distance is divided by 2 before the square root.
 
 ```{r}
 targets <- scores |>
@@ -256,13 +288,20 @@ targets <- scores |>
 
 Y <- targets |> select(clay_perc, carbon_org_perc) |> as.matrix()
 
-target_cutoff <- sqrt(qchisq(ALPHA, df = ncol(Y)))
-target_cutoff
+targets <- targets |>
+  mutate(dist_target = as.vector(resemble::dissimilarity(
+    Xr = Y,
+    Xu = t(colMeans(Y)),
+    diss_method = resemble::diss_mahalanobis(center = FALSE, scale = FALSE)
+  )$dissimilarity))
+
+targets |> arrange(desc(dist_target)) |> head(10)
 ```
 
+As for the spectra, we choose the cutoff by eye from the ranked distances. `RT_09` and `RT_23` stand apart, at about 4.5 and 3.4. The next sample, `RT_21`, is at about 2.3. We set the cutoff in that gap.
+
 ```{r}
-targets <- targets |>
-  mutate(dist_target = sqrt(mahalanobis(Y, colMeans(Y), cov(Y))))
+TARGET_CUTOFF <- 3
 ```
 
 ### Feature-space vs. target-space distance
@@ -279,9 +318,9 @@ dists <- scores |>
   select(smp_id, dist_feat) |>
   inner_join(targets |> select(smp_id, dist_target), by = "smp_id") |>
   mutate(region = case_when(
-    dist_feat <= feat_cutoff & dist_target <= target_cutoff ~ "Both ordinary",
-    dist_feat >  feat_cutoff & dist_target <= target_cutoff ~ "Unusual spectrum, ordinary chemistry",
-    dist_feat >  feat_cutoff & dist_target >  target_cutoff ~ "Unusual spectrum and chemistry",
+    dist_feat <= OUTLIER_CUTOFF & dist_target <= TARGET_CUTOFF ~ "Both ordinary",
+    dist_feat >  OUTLIER_CUTOFF & dist_target <= TARGET_CUTOFF ~ "Unusual spectrum, ordinary chemistry",
+    dist_feat >  OUTLIER_CUTOFF & dist_target >  TARGET_CUTOFF ~ "Unusual spectrum and chemistry",
     TRUE                                                    ~ "Ordinary spectrum, extreme chemistry"
   ))
 ```
@@ -291,8 +330,8 @@ dists <- scores |>
 #| fig-height: 5
 ggplot(dists, aes(dist_feat, dist_target, colour = region)) +
   geom_point(size = 2.5, alpha = 0.8) +
-  geom_vline(xintercept = feat_cutoff, linetype = "dashed") +
-  geom_hline(yintercept = target_cutoff, linetype = "dashed") +
+  geom_vline(xintercept = OUTLIER_CUTOFF, linetype = "dashed") +
+  geom_hline(yintercept = TARGET_CUTOFF, linetype = "dashed") +
   geom_text(
     data = filter(dists, region != "Both ordinary"),
     aes(label = smp_id), vjust = -0.8, size = 3, show.legend = FALSE) +
@@ -302,8 +341,8 @@ ggplot(dists, aes(dist_feat, dist_target, colour = region)) +
     "Unusual spectrum and chemistry"       = "darkgreen",
     "Ordinary spectrum, extreme chemistry" = "firebrick")) +
   labs(
-    x = "Mahalanobis distance, feature space (PC scores)",
-    y = "Mahalanobis distance, target space",
+    x = "Scaled Mahalanobis distance, feature space (PC scores)",
+    y = "Scaled Mahalanobis distance, target space",
     colour = NULL) +
   theme(legend.position = "bottom") +
   guides(colour = guide_legend(ncol = 2))

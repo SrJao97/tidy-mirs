@@ -13,7 +13,7 @@ execute:
   message: false
 ---
 
-`1-full-pipeline.qmd` already called `prepare_rt()` once, to get moving. This page opens that call up. It loads spectra and soil chemistry for this dataset's soil samples. It turns them into the single tibble every later page in this course starts from. `source()` runs a plain R script and adds what it defines to your session, the job `import` does in Python. `read_opus_tbl()` and `prepare_rt()`, the two functions this page uses, live in `R/io.R` and `R/prepare_data.R`.
+[The full pipeline](1-full-pipeline.qmd) already called `prepare_rt()` once, to get moving. This page opens that call up. It loads spectra and soil chemistry for this dataset's soil samples. It turns them into the single tibble every later page in this course starts from. `source()` runs a plain R script and adds what it defines to your session, the job `import` does in Python. `read_opus_tbl()` and `prepare_rt()`, the two functions this page uses, live in [`R/io.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/io.R) and [`R/prepare_data.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/prepare_data.R).
 
 ```{r}
 library(here)
@@ -42,7 +42,7 @@ data
 
 ## Unpacking `prepare_rt()`
 
-The rest of this page opens up what `prepare_rt()` does underneath, one step at a time. Open `R/prepare_data.R` alongside this page if you want to follow the source directly. Each step below matches one chunk of that function.
+The rest of this page opens up what `prepare_rt()` does underneath, one step at a time. Open [`R/prepare_data.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/prepare_data.R) alongside this page if you want to follow the source directly. Each step below matches one chunk of that function.
 
 ### Reading OPUS spectra files
 
@@ -103,10 +103,9 @@ data |>
 ::: {.callout-note}
 ## A skewed column
 
-`potassium_cmolkg` above is right-skewed. 58 of the 69 measured samples sit under 1 cmol(+)/kg. One reaches 2.8. `3-eda.qmd` comes back to this, with the plots to show it and the reasons it matters for modelling.
+`potassium_cmolkg` above is right-skewed. 58 of the 69 measured samples sit under 1 cmol(+)/kg. One reaches 2.8. [Exploratory data analysis](3-eda.qmd) comes back to this, with the plots to show it and the reasons it matters for modelling.
 :::
 
 ## Digging further
 
-`prepare_rt()` in `R/prepare_data.R` is exactly the four chunks above, chained. To see how `read_opus_tbl()` itself gets from a folder of `.0` files to a tibble, open `R/io.R` and step through it in the R console: build a small `path`, run `read_opus(dsn = path)` from opusreader2 on its own, inspect what comes back, then run each following line by hand. These scripts aren't a package. `?read_opus_tbl` won't find a help page. The roxygen comment above each function is written in the same format a package help page would show, and reads the same way top to bottom.
-
+`prepare_rt()` in [`R/prepare_data.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/prepare_data.R) is exactly the four chunks above, chained. To see how `read_opus_tbl()` itself gets from a folder of `.0` files to a tibble, open [`R/io.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/io.R) and step through it in the R console: build a small `path`, run `read_opus(dsn = path)` from opusreader2 on its own, inspect what comes back, then run each following line by hand. These scripts aren't a package. `?read_opus_tbl` won't find a help page. The roxygen comment above each function is written in the same format a package help page would show, and reads the same way top to bottom.

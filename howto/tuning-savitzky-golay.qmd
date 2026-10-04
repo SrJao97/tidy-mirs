@@ -41,19 +41,20 @@ SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
 ```{r}
 TARGET <- "carbon_tot_perc"
 
-# --- Preprocessing ----------------------------------------------------------
-RESAMPLING_GRID <- seq(3995, 600, by = -5)
+source(here("R", "config.R"), echo = TRUE, keep.source = TRUE, max.deparse.length = Inf)
 
 # --- PLS --------------------------------------------------------------------
 NUM_COMP <- 2:20
 ```
 
+The shared settings come from [`R/config.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/config.R). [The full pipeline](../1-full-pipeline.qmd) explains how it works.
+
 ## Data, split, and folds
 
-These are exactly the steps of [Evaluating performance](../6-evaluating-performance.qmd): `RT_44` left out, a Kennard-Stone split, and 10-fold cross-validation repeated 10 times on the training set. The test set is not used on this page.
+These are exactly the steps of [Evaluating performance](../6-evaluating-performance.qmd): `EXCLUDED_SAMPLES` left out, a Kennard-Stone split, and 10-fold cross-validation repeated 10 times on the training set. The test set is not used on this page.
 
 ```{r}
-data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE) |> filter(smp_id != "RT_44")
+data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE) |> filter(!smp_id %in% EXCLUDED_SAMPLES)
 
 split <- kennard_stone_split(data, prop = 50/70, cols = starts_with("wn_"))
 
@@ -162,7 +163,7 @@ rmse_res <- bind_rows(
   collect_metrics(res_base) |> mutate(setting = "no SG"),
   collect_metrics(res_sg)   |> mutate(setting = glue::glue("w={w}, p={p}, m={m}"))
 ) |>
-  mutate(default = setting == "w=15, p=3, m=1")
+  mutate(default = setting == glue::glue("w={SG_W}, p={SG_P}, m={SG_M}"))
 ```
 
 ### RMSE against the number of components
@@ -217,6 +218,7 @@ best_per_setting |>
 n_within   <- sum(best_per_setting$mean <= bound)
 spread_sg  <- diff(range(best_per_setting$mean))
 comp_range <- rmse_res |> filter(setting == best_row$setting) |> pull(mean) |> range() |> diff()
+default_row <- best_per_setting |> filter(default)
 ```
 
 `r n_within` of the `r nrow(best_per_setting)` settings are inside the bound. Between the best and the worst setting, the lowest mean RMSE varies by `r signif(spread_sg, 2)`. For the best setting alone, the RMSE varies by `r signif(comp_range, 2)` across the number of components. On this dataset, the number of components matters more than the preprocessing setting.
@@ -225,15 +227,17 @@ The standard errors are also too small, as [Evaluating performance](../6-evaluat
 
 ## What this means in practice
 
-With 49 training samples, the data cannot separate most SG settings. Three patterns stand out in the table above:
+With 48 training samples, the data cannot reliably separate most SG settings. The ranking is also unstable. Removing a single sample, `RT_42`, reordered most of the table and moved several settings across the bound. Three points still stand out:
 
-- **The model without SG is among the best.** On this dataset, SG adds nothing measurable on top of SNV and PLS. PLS combines hundreds of wavenumbers into each component, which already averages away much of the noise that SG smoothing would remove.
 - **Settings that amplify noise do worse.** Each derivative amplifies noise, and a narrow window averages little of it away. The second derivative with `w = 7`, a window of 30 cm⁻¹, is clearly the worst setting.
-- **The course default is inside the bound.** There is no evidence that another setting would do better here.
+- **Settings without a derivative do well here.** Smoothing alone, or no SG at all, scores at or near the top. PLS combines hundreds of wavenumbers into each component, which already averages away much of the noise that SG smoothing would remove.
+- **The course default is not among the best here.** Its lowest mean RMSE is `r signif(default_row$mean, 3)`, against a bound of `r signif(bound, 3)`. The gap is small. One sample was enough to move the default from inside the bound to outside it, so this is weak evidence against the setting.
 
 The choice of SG setting is therefore not worth a long search: avoid settings that amplify noise, and keep a standard one. The number of PLS components matters much more, and tuning it is essential.
 
+The course keeps `w = 15`, `p = 3`, `m = 1` as its default. The first derivative is a standard choice for MIR spectra: it removes baseline shifts, and [Feature engineering](../4-feature-engineering.qmd) shows what it does to a spectrum. To try another setting on every page, change `SG_W`, `SG_P` and `SG_M` in `R/config.R` and render the pages again. Compare settings with cross-validation results, as on this page, not with the test score. Choosing with the test set makes its score optimistic.
+
 This holds for this dataset, not in general. Two things can change the answer:
 
-- **More samples.** With thousands of samples, like the [OSSL](../7-preparing-ossl.qmd) sample, the error bars shrink. Differences between settings that are hidden here can become visible. The same check is then worth running, with a validation set instead of repeated cross-validation to keep the cost down.
+- **More samples.** With thousands of samples, like the [OSSL](../8-preparing-ossl.qmd) sample, the error bars shrink. Differences between settings that are hidden here can become visible. The same check is then worth running, with a validation set instead of repeated cross-validation to keep the cost down.
 - **The resolution of the spectral grid.** `w` counts grid points. On a grid with one point every 10 cm⁻¹, `w = 21` spans 200 cm⁻¹, not 100. A setting tuned on one grid does not carry over to another grid as it is.

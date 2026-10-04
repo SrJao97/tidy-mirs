@@ -13,7 +13,7 @@ execute:
   message: false
 ---
 
-`1-full-pipeline.qmd` already tuned this same model on this same data. It picked a number of components with `select_best()`. This page runs the same tuning in more depth: the CV curve behind that choice, and `select_by_one_std_err()` as a simpler alternative to picking the single best value.
+[The full pipeline](1-full-pipeline.qmd) already tuned this same model on this same data. It picked a number of components with `select_best()`. This page runs the same tuning in more depth: the CV curve behind that choice, and `select_by_one_std_err()` as a simpler alternative to picking the single best value.
 
 ```{r}
 library(here)
@@ -45,28 +45,25 @@ SOIL_PROP_FILE = here("data/RT_wetchem_soildata.csv")
 ```{r}
 TARGET <- "carbon_tot_perc"
 
-# --- Preprocessing ----------------------------------------------------------
-RESAMPLE_BY <- 5L
-RESAMPLING_GRID <- seq(3995, 600, by = -5)
-SG_W        <- 15L   
-SG_P        <- 3L    
-SG_M        <- 1L  
+source(here("R", "config.R"), echo = TRUE, keep.source = TRUE, max.deparse.length = Inf)
 ```
+
+The shared settings come from [`R/config.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/config.R). [The full pipeline](1-full-pipeline.qmd) explains how it works.
 
 
 ## Getting data
 
-`RT_44` is left out. `5-outlier-detection.qmd` highlights its spectrum as a candidate outlier.
+`EXCLUDED_SAMPLES`, `RT_44` and `RT_42`, are left out. [Outlier detection](5-outlier-detection.qmd) flags their spectra as the two most unusual.
 
 ```{r}
-data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE)|> filter(smp_id != "RT_44")
+data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE) |> filter(!smp_id %in% EXCLUDED_SAMPLES)
 ```
 
 ## Splitting the data
 
 The test set is set aside first. It stays untouched until the last step, `last_fit()`. Every decision before that, including the number of PLS components, uses the training set only. Otherwise the test score would be optimistic: the model would have been chosen partly because it did well on those same samples.
 
-`kennard_stone_split()`, defined in `R/split.R`, chooses the training samples so that they cover the spectral space evenly. It works on PCA scores of the SNV-corrected spectra. It starts from the two most distant samples, then keeps adding the sample furthest from those already chosen. The test samples then fall inside the range the model has seen. `initial_split()` is the random alternative.
+`kennard_stone_split()`, defined in [`R/split.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/split.R), chooses the training samples so that they cover the spectral space evenly. It works on PCA scores of the SNV-corrected spectra. It starts from the two most distant samples, then keeps adding the sample furthest from those already chosen. The test samples then fall inside the range the model has seen. `initial_split()` is the random alternative.
 
 ```{r}
 split <- kennard_stone_split(data, prop = 50/70, cols = starts_with("wn_"))
@@ -82,7 +79,7 @@ split <- kennard_stone_split(data, prop = 50/70, cols = starts_with("wn_"))
 
 The model has one setting to choose: the number of PLS components. Each candidate value needs a score on samples the model has not seen. The training set cannot give that score. Training error keeps falling as components are added, even after the extra components only fit noise. The test set cannot give it either, because it must stay untouched.
 
-Cross-validation makes held-out data from the training set itself. `vfold_cv()` shuffles the 49 training samples and deals them into `v = 10` groups, called folds, of 4 to 6 samples each. Each fold takes a turn as the assessment set. The model is fitted on the other 9 folds, 43 to 45 samples, and scored on the held-out fold. After 10 rounds, every training sample has been predicted once by a model that did not see it. The 10 fold scores are averaged into one estimate.
+Cross-validation makes held-out data from the training set itself. `vfold_cv()` shuffles the 48 training samples and deals them into `v = 10` groups, called folds, of 4 to 6 samples each. Each fold takes a turn as the assessment set. The model is fitted on the other 9 folds, 42 to 44 samples, and scored on the held-out fold. After 10 rounds, every training sample has been predicted once by a model that did not see it. The 10 fold scores are averaged into one estimate.
 
 `tune_grid()` runs the whole workflow inside every fold, recipe included. The recipe is prepped on the 9 fitting folds only. Nothing learnt from the held-out fold leaks into the model.
 
@@ -109,9 +106,9 @@ The gain follows a square root. 4 times more measurements halve the standard err
 The $\sigma / \sqrt{n}$ formula needs independent measurements. The 100 fold scores are not independent:
 
 - Within one repeat, any two fitting sets share 8 of their 9 folds, about 90% of their samples. The models they produce are very similar.
-- Across repeats, the same 49 samples are reshuffled. No new soil ever enters.
+- Across repeats, the same 48 samples are reshuffled. No new soil ever enters.
 
-Repeating averages away the noise that comes from how the folds were dealt. It cannot remove the noise that comes from which 49 soils were collected. A different set of 49 soils from the same region would give a different curve. No amount of repeating on the current set shows that.
+Repeating averages away the noise that comes from how the folds were dealt. It cannot remove the noise that comes from which 48 soils were collected. A different set of 48 soils from the same region would give a different curve. No amount of repeating on the current set shows that.
 
 The effective number of independent measurements is therefore much smaller than 100, and `std_err` is too small. Read it as a lower bound on the real uncertainty. It is still useful to compare candidates with each other, because they all use the same folds. There is no simple fix. Bengio and Grandvalet (2004) show that no unbiased estimator of the variance of k-fold cross-validation exists.
 
@@ -129,7 +126,7 @@ folds <- vfold_cv(
 
 ## Model
 
-The recipe is the one `4-feature-engineering.qmd` builds step by step, here with `carbon_tot_perc` as the outcome.
+The recipe is the one [Feature engineering](4-feature-engineering.qmd) builds step by step, here with `carbon_tot_perc` as the outcome.
 
 ```{r}
 spc_cols <- names(data)[startsWith(names(data), "wn_")]
