@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-29">
+<meta name="dcterms.date" content="2026-10-04">
 
 <title>Soil mid-infrared spectroscopy – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -155,7 +155,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./4-feature-engineering.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Features engineering</span></a>
+ <span class="menu-text">Feature engineering</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -168,6 +168,12 @@ ul.task-list li input[type="checkbox"] {
   <div class="sidebar-item-container"> 
   <a href="./6-evaluating-performance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Evaluating performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./7-preparing-for-inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preparing a model for inference</span></a>
   </div>
 </li>
       </ul>
@@ -183,13 +189,13 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./7-preparing-ossl.html" class="sidebar-item-text sidebar-link">
+  <a href="./8-preparing-ossl.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Preparing OSSL</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./8-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
+  <a href="./9-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Predicting Exchangeable Potassium using OSSL</span></a>
   </div>
 </li>
@@ -254,7 +260,7 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 29, 2026</p>
+      <p class="date">October 4, 2026</p>
     </div>
   </div>
   
@@ -277,11 +283,11 @@ ul.task-list li input[type="checkbox"] {
 <li>Build it once, reuse it again and again, on a new dataset, a new target, a colleague’s laptop.</li>
 <li>And building on tidyverse and tidymodels means building on a vast, expressive, mainstream ecosystem, one this course borrows rather than reinvents.</li>
 </ol>
-<p>Base <code>recipes</code> ships no steps for spectra. This course adds a handful, wrapping <code>prospectr</code> and <code>resemble</code> underneath. <code>4-feature-engineering.qmd</code> tells that story properly. Everything downstream of them is standard tidymodels. We won’t reteach the tidyverse’s own documentation, its books, or its cheatsheets. Where this course points at a reference instead of re-explaining it, follow the link. That reference will outlast this course.</p>
+<p>Base <code>recipes</code> ships no steps for spectra. This course adds a handful, wrapping <code>prospectr</code> and <code>resemble</code> underneath. <a href="./4-feature-engineering.html">Feature engineering</a> tells that story properly. Everything downstream of them is standard tidymodels. We won’t reteach the tidyverse’s own documentation, its books, or its cheatsheets. Where this course points at a reference instead of re-explaining it, follow the link. That reference will outlast this course.</p>
 </section>
 <section id="how-this-course-teaches" class="level2">
 <h2 class="anchored" data-anchor-id="how-this-course-teaches">How this course teaches</h2>
-<p>Each page runs top-down. It opens with the full step at the level you’d actually use day to day, one function call that returns a fitted model and a table of results. Only then does it open up to show what’s inside. The course runs the same way: <code>1-full-pipeline.qmd</code> assembles the whole thing once, then every page after it opens up one piece.</p>
+<p>Each page runs top-down. It opens with the full step at the level you’d actually use day to day, one function call that returns a fitted model and a table of results. Only then does it open up to show what’s inside. The course runs the same way: <a href="./1-full-pipeline.html">The full pipeline</a> assembles the whole thing once, then every page after it opens up one piece.</p>
 <p>That’s deliberate. R functions like <code>recipe()</code>, <code>mutate()</code>, and <code>tune()</code> name what they do closely enough that someone with limited R experience can run the pipeline and follow its logic, even before they could write any of it themselves. Only later does peeling back a layer become worth the time. Every page that unpacks a function names its source file. Digging further is always one open file and the R console away.</p>
 <p><a href="https://r4ds.hadley.nz/">R for Data Science</a> covers the R foundations this course assumes, or skips past to keep moving. The <a href="https://rstudio.github.io/cheatsheets/">Posit cheatsheets</a> cover most packages this course uses, in a page or two each. If you want to understand R as a language, not just this pipeline, start with the Foundations section of <a href="https://adv-r.hadley.nz/">Advanced R</a>. Finally, the <a href="https://www.tmwr.org/">Tidy Modeling with R</a> book proposes a deep dive into the Tidymodels framework.</p>
 </section>
@@ -295,8 +301,9 @@ ul.task-list li input[type="checkbox"] {
 <li><a href="./4-feature-engineering.html">Feature engineering</a>: build a <code>recipes</code> pipeline out of resampling, SNV, and Savitzky-Golay steps.</li>
 <li><a href="./5-outlier-detection.html">Outlier detection</a>: use PCA on the preprocessed spectra to find samples a model shouldn’t trust.</li>
 <li><a href="./6-evaluating-performance.html">Evaluating performance</a>: split the data, fit a model, and score it with tidymodels.</li>
-<li><a href="./7-preparing-ossl.html">Preparing OSSL</a>: pull a working sample from the Open Soil Spectral Library.</li>
-<li><a href="./8-kex-ossl-pipeline.html">Predicting exchangeable potassium using OSSL</a>: the same pipeline, run end to end on a public, global dataset.</li>
+<li><a href="./7-preparing-for-inference.html">Preparing a model for inference</a>: save a fitted model, load it again, and predict new spectra.</li>
+<li><a href="./8-preparing-ossl.html">Preparing OSSL</a>: pull a working sample from the Open Soil Spectral Library.</li>
+<li><a href="./9-kex-ossl-pipeline.html">Predicting exchangeable potassium using OSSL</a>: the same pipeline, run end to end on a public, global dataset.</li>
 </ol>
 <section id="going-further" class="level3">
 <h3 class="anchored" data-anchor-id="going-further">Going further</h3>

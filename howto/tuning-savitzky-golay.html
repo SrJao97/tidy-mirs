@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-29">
+<meta name="dcterms.date" content="2026-10-04">
 
 <title>Does the Savitzky-Golay setting matter? – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -190,7 +190,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../4-feature-engineering.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Features engineering</span></a>
+ <span class="menu-text">Feature engineering</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -203,6 +203,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="../6-evaluating-performance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Evaluating performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../7-preparing-for-inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preparing a model for inference</span></a>
   </div>
 </li>
       </ul>
@@ -218,13 +224,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../7-preparing-ossl.html" class="sidebar-item-text sidebar-link">
+  <a href="../8-preparing-ossl.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Preparing OSSL</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../8-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
+  <a href="../9-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Predicting Exchangeable Potassium using OSSL</span></a>
   </div>
 </li>
@@ -293,7 +299,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 29, 2026</p>
+      <p class="date">October 4, 2026</p>
     </div>
   </div>
   
@@ -524,7 +530,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The choice of SG setting is therefore not worth a long search: avoid settings that amplify noise, and keep a standard one. The number of PLS components matters much more, and tuning it is essential.</p>
 <p>This holds for this dataset, not in general. Two things can change the answer:</p>
 <ul>
-<li><strong>More samples.</strong> With thousands of samples, like the <a href="../7-preparing-ossl.html">OSSL</a> sample, the error bars shrink. Differences between settings that are hidden here can become visible. The same check is then worth running, with a validation set instead of repeated cross-validation to keep the cost down.</li>
+<li><strong>More samples.</strong> With thousands of samples, like the <a href="../8-preparing-ossl.html">OSSL</a> sample, the error bars shrink. Differences between settings that are hidden here can become visible. The same check is then worth running, with a validation set instead of repeated cross-validation to keep the cost down.</li>
 <li><strong>The resolution of the spectral grid.</strong> <code>w</code> counts grid points. On a grid with one point every 10 cm⁻¹, <code>w = 21</code> spans 200 cm⁻¹, not 100. A setting tuned on one grid does not carry over to another grid as it is.</li>
 </ul>
 

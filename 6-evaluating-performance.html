@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-27">
+<meta name="dcterms.date" content="2026-10-04">
 
 <title>Evaluating performance – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -219,7 +219,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./4-feature-engineering.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Features engineering</span></a>
+ <span class="menu-text">Feature engineering</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -232,6 +232,12 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="./6-evaluating-performance.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Evaluating performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./7-preparing-for-inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preparing a model for inference</span></a>
   </div>
 </li>
       </ul>
@@ -247,13 +253,13 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./7-preparing-ossl.html" class="sidebar-item-text sidebar-link">
+  <a href="./8-preparing-ossl.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Preparing OSSL</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./8-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
+  <a href="./9-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Predicting Exchangeable Potassium using OSSL</span></a>
   </div>
 </li>
@@ -328,7 +334,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 27, 2026</p>
+      <p class="date">October 4, 2026</p>
     </div>
   </div>
   
@@ -340,7 +346,7 @@ window.Quarto = {
 </header>
 
 
-<p><code>1-full-pipeline.qmd</code> already tuned this same model on this same data. It picked a number of components with <code>select_best()</code>. This page runs the same tuning in more depth: the CV curve behind that choice, and <code>select_by_one_std_err()</code> as a simpler alternative to picking the single best value.</p>
+<p><a href="./1-full-pipeline.html">The full pipeline</a> already tuned this same model on this same data. It picked a number of components with <code>select_best()</code>. This page runs the same tuning in more depth: the CV curve behind that choice, and <code>select_by_one_std_err()</code> as a simpler alternative to picking the single best value.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
@@ -378,7 +384,7 @@ window.Quarto = {
 </div>
 <section id="getting-data" class="level2">
 <h2 class="anchored" data-anchor-id="getting-data">Getting data</h2>
-<p><code>RT_44</code> is left out. <code>5-outlier-detection.qmd</code> highlights its spectrum as a candidate outlier.</p>
+<p><code>RT_44</code> is left out. <a href="./5-outlier-detection.html">Outlier detection</a> highlights its spectrum as a candidate outlier.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">prepare_rt</span>(SPECTRA_DIR, SOIL_PROP_FILE)<span class="sc">|&gt;</span> <span class="fu">filter</span>(smp_id <span class="sc">!=</span> <span class="st">"RT_44"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -386,7 +392,7 @@ window.Quarto = {
 <section id="splitting-the-data" class="level2">
 <h2 class="anchored" data-anchor-id="splitting-the-data">Splitting the data</h2>
 <p>The test set is set aside first. It stays untouched until the last step, <code>last_fit()</code>. Every decision before that, including the number of PLS components, uses the training set only. Otherwise the test score would be optimistic: the model would have been chosen partly because it did well on those same samples.</p>
-<p><code>kennard_stone_split()</code>, defined in <code>R/split.R</code>, chooses the training samples so that they cover the spectral space evenly. It works on PCA scores of the SNV-corrected spectra. It starts from the two most distant samples, then keeps adding the sample furthest from those already chosen. The test samples then fall inside the range the model has seen. <code>initial_split()</code> is the random alternative.</p>
+<p><code>kennard_stone_split()</code>, defined in <a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/split.R"><code>R/split.R</code></a>, chooses the training samples so that they cover the spectral space evenly. It works on PCA scores of the SNV-corrected spectra. It starts from the two most distant samples, then keeps adding the sample furthest from those already chosen. The test samples then fall inside the range the model has seen. <code>initial_split()</code> is the random alternative.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>split <span class="ot">&lt;-</span> <span class="fu">kennard_stone_split</span>(data, <span class="at">prop =</span> <span class="dv">50</span><span class="sc">/</span><span class="dv">70</span>, <span class="at">cols =</span> <span class="fu">starts_with</span>(<span class="st">"wn_"</span>))</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -449,7 +455,7 @@ window.Quarto = {
 </section>
 <section id="model" class="level2">
 <h2 class="anchored" data-anchor-id="model">Model</h2>
-<p>The recipe is the one <code>4-feature-engineering.qmd</code> builds step by step, here with <code>carbon_tot_perc</code> as the outcome.</p>
+<p>The recipe is the one <a href="./4-feature-engineering.html">Feature engineering</a> builds step by step, here with <code>carbon_tot_perc</code> as the outcome.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>spc_cols <span class="ot">&lt;-</span> <span class="fu">names</span>(data)[<span class="fu">startsWith</span>(<span class="fu">names</span>(data), <span class="st">"wn_"</span>)]</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>meta_cols <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="fu">names</span>(data), <span class="fu">c</span>(TARGET, spc_cols))</span>

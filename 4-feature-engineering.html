@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-29">
+<meta name="dcterms.date" content="2026-10-04">
 
-<title>Features engineering – Soil mid-infrared spectroscopy with tidymodels</title>
+<title>Feature engineering – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -123,7 +123,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./0-getting-setup.html">Foundations</a></li><li class="breadcrumb-item"><a href="./4-feature-engineering.html">Features engineering</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./0-getting-setup.html">Foundations</a></li><li class="breadcrumb-item"><a href="./4-feature-engineering.html">Feature engineering</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -190,7 +190,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./4-feature-engineering.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Features engineering</span></a>
+ <span class="menu-text">Feature engineering</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -203,6 +203,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="./6-evaluating-performance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Evaluating performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./7-preparing-for-inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preparing a model for inference</span></a>
   </div>
 </li>
       </ul>
@@ -218,13 +224,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./7-preparing-ossl.html" class="sidebar-item-text sidebar-link">
+  <a href="./8-preparing-ossl.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Preparing OSSL</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./8-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
+  <a href="./9-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Predicting Exchangeable Potassium using OSSL</span></a>
   </div>
 </li>
@@ -275,9 +281,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./0-getting-setup.html">Foundations</a></li><li class="breadcrumb-item"><a href="./4-feature-engineering.html">Features engineering</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./0-getting-setup.html">Foundations</a></li><li class="breadcrumb-item"><a href="./4-feature-engineering.html">Feature engineering</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Features engineering</h1>
+<h1 class="title">Feature engineering</h1>
 <p class="subtitle lead">Build a <code>recipes</code> pipeline out of resampling, SNV, and Savitzky-Golay steps.</p>
 </div>
 
@@ -295,7 +301,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 29, 2026</p>
+      <p class="date">October 4, 2026</p>
     </div>
   </div>
   
@@ -340,8 +346,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="recipes" class="level2">
 <h2 class="anchored" data-anchor-id="recipes">Recipes</h2>
-<p><code>1-full-pipeline.qmd</code> already built and used a recipe once, without explaining it. This page is that explanation. A <code>recipe</code> in tidymodels is a specification of preprocessing steps, written once and reused everywhere a model needs data in the same shape. The <a href="https://recipes.tidymodels.org/">recipes package</a> and the <a href="https://www.tidymodels.org/start/recipes/">tidymodels recipes guide</a> cover the general vocabulary this page assumes, alongside the <a href="https://posit.co/resources/cheatsheets/">Posit cheatsheets</a> already pointed to from the course homepage.</p>
-<p>Base <code>recipes</code> ships steps for the usual tabular preprocessing, centring, scaling, dummy variables, but nothing for a spectrum. <code>step_snv()</code>, <code>step_sg()</code>, and <code>step_resample()</code>, defined in <code>R/steps.R</code>, close that gap.</p>
+<p><a href="./1-full-pipeline.html">The full pipeline</a> already built and used a recipe once, without explaining it. This page is that explanation. A <code>recipe</code> in tidymodels is a specification of preprocessing steps, written once and reused everywhere a model needs data in the same shape. The <a href="https://recipes.tidymodels.org/">recipes package</a> and the <a href="https://www.tidymodels.org/start/recipes/">tidymodels recipes guide</a> cover the general vocabulary this page assumes, alongside the <a href="https://posit.co/resources/cheatsheets/">Posit cheatsheets</a> already pointed to from the course homepage.</p>
+<p>Base <code>recipes</code> ships steps for the usual tabular preprocessing, centring, scaling, dummy variables, but nothing for a spectrum. <code>step_snv()</code>, <code>step_sg()</code>, and <code>step_resample()</code>, defined in <a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/steps.R"><code>R/steps.R</code></a>, close that gap.</p>
 <p>Each one wraps a <code>prospectr</code> or <code>resemble</code> function, <code>prospectr::standardNormalVariate()</code>, <code>prospectr::savitzkyGolay()</code>, <code>prospectr::resample()</code>, inside the contract a <code>recipes</code> step needs: a constructor, <code>prep()</code>, <code>bake()</code>, <code>print()</code>, <code>tidy()</code>. That’s what lets <code>step_snv()</code> sit in a recipe next to <code>step_log()</code> or any other tidymodels step. It gets ordered, tuned, and applied the same way every other step does.</p>
 <section id="defining-roles" class="level3">
 <h3 class="anchored" data-anchor-id="defining-roles">Defining roles</h3>
@@ -421,7 +427,7 @@ The retained training set is ~ 0.44 Mb  in memory.</code></pre>
 <p>None of the three steps below actually estimate anything from the training set as a whole. SNV and Savitzky-Golay both act one row at a time, using only that row’s own values. Resampling only depends on the wavenumber grid, not on any sample’s measurements. <code>prep()</code> still runs before each one, mostly resolving which columns it applies to. The training/test separation it exists for matters most once a step needs to remember something computed across rows, a column mean for centring, say, rather than something computed within each row.</p>
 <section id="resampling" class="level3">
 <h3 class="anchored" data-anchor-id="resampling">Resampling</h3>
-<p>This step does two things. <code>step_log(all_outcomes(), base = 10)</code> log-scales the outcome, the fix for <code>potassium_cmolkg</code>’s skew discussed back in <code>2-loading-data.qmd</code> and <code>3-eda.qmd</code>. <code>step_resample()</code> interpolates every spectrum onto <code>RESAMPLING_GRID</code>, an evenly spaced set of wavenumbers 5 cm⁻¹ apart, versus the roughly 2 cm⁻¹ spacing <code>read_opus_tbl()</code> returns. That cuts the predictor count from 1707 columns to 680. It also guarantees every sample lands on the same wavenumber axis, even where the source instrument didn’t.</p>
+<p>This step does two things. <code>step_log(all_outcomes(), base = 10)</code> log-scales the outcome, the fix for <code>potassium_cmolkg</code>’s skew discussed back in <a href="./2-loading-data.html">Loading spectral data</a> and <a href="./3-eda.html">Exploratory data analysis</a>. <code>step_resample()</code> interpolates every spectrum onto <code>RESAMPLING_GRID</code>, an evenly spaced set of wavenumbers 5 cm⁻¹ apart, versus the roughly 2 cm⁻¹ spacing <code>read_opus_tbl()</code> returns. That cuts the predictor count from 1707 columns to 680. It also guarantees every sample lands on the same wavenumber axis, even where the source instrument didn’t.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>rec_res <span class="ot">&lt;-</span> rec <span class="sc">|&gt;</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_log</span>(<span class="fu">all_outcomes</span>(), <span class="at">base =</span> <span class="dv">10</span>) <span class="sc">|&gt;</span></span>

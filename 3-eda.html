@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-26">
+<meta name="dcterms.date" content="2026-10-04">
 
 <title>Exploratory Data Analysis – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -190,7 +190,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./4-feature-engineering.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Features engineering</span></a>
+ <span class="menu-text">Feature engineering</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -203,6 +203,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="./6-evaluating-performance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Evaluating performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./7-preparing-for-inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preparing a model for inference</span></a>
   </div>
 </li>
       </ul>
@@ -218,13 +224,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./7-preparing-ossl.html" class="sidebar-item-text sidebar-link">
+  <a href="./8-preparing-ossl.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Preparing OSSL</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./8-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
+  <a href="./9-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Predicting Exchangeable Potassium using OSSL</span></a>
   </div>
 </li>
@@ -300,7 +306,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 26, 2026</p>
+      <p class="date">October 4, 2026</p>
     </div>
   </div>
   
@@ -327,7 +333,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="getting-data" class="level2">
 <h2 class="anchored" data-anchor-id="getting-data">Getting data</h2>
-<p>This loads the same tibble <code>2-loading-data.qmd</code> builds, in one call.</p>
+<p>This loads the same tibble <a href="./2-loading-data.html">Loading spectral data</a> builds, in one call.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">prepare_rt</span>(SPECTRA_DIR, SOIL_PROP_FILE)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -472,7 +478,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<p><code>carbon_org_perc</code> and <code>carbon_tot_perc</code> curve furthest from the line, the same properties <code>2-loading-data.qmd</code> flagged <code>potassium_cmolkg</code> for, only more so. Log-transforming pulls most of them back toward it:</p>
+<p><code>carbon_org_perc</code> and <code>carbon_tot_perc</code> curve furthest from the line, the same properties <a href="./2-loading-data.html">Loading spectral data</a> flagged <code>potassium_cmolkg</code> for, only more so. Log-transforming pulls most of them back toward it:</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>soil_long <span class="sc">|&gt;</span> </span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(value <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>

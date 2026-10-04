@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-26">
+<meta name="dcterms.date" content="2026-10-04">
 
 <title>Loading spectral data – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -190,7 +190,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./4-feature-engineering.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Features engineering</span></a>
+ <span class="menu-text">Feature engineering</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -203,6 +203,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="./6-evaluating-performance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Evaluating performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./7-preparing-for-inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preparing a model for inference</span></a>
   </div>
 </li>
       </ul>
@@ -218,13 +224,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./7-preparing-ossl.html" class="sidebar-item-text sidebar-link">
+  <a href="./8-preparing-ossl.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Preparing OSSL</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./8-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
+  <a href="./9-kex-ossl-pipeline.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Predicting Exchangeable Potassium using OSSL</span></a>
   </div>
 </li>
@@ -292,7 +298,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 26, 2026</p>
+      <p class="date">October 4, 2026</p>
     </div>
   </div>
   
@@ -304,7 +310,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p><code>1-full-pipeline.qmd</code> already called <code>prepare_rt()</code> once, to get moving. This page opens that call up. It loads spectra and soil chemistry for this dataset’s soil samples. It turns them into the single tibble every later page in this course starts from. <code>source()</code> runs a plain R script and adds what it defines to your session, the job <code>import</code> does in Python. <code>read_opus_tbl()</code> and <code>prepare_rt()</code>, the two functions this page uses, live in <code>R/io.R</code> and <code>R/prepare_data.R</code>.</p>
+<p><a href="./1-full-pipeline.html">The full pipeline</a> already called <code>prepare_rt()</code> once, to get moving. This page opens that call up. It loads spectra and soil chemistry for this dataset’s soil samples. It turns them into the single tibble every later page in this course starts from. <code>source()</code> runs a plain R script and adds what it defines to your session, the job <code>import</code> does in Python. <code>read_opus_tbl()</code> and <code>prepare_rt()</code>, the two functions this page uses, live in <a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/io.R"><code>R/io.R</code></a> and <a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/prepare_data.R"><code>R/prepare_data.R</code></a>.</p>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
@@ -349,7 +355,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="unpacking-prepare_rt" class="level2">
 <h2 class="anchored" data-anchor-id="unpacking-prepare_rt">Unpacking <code>prepare_rt()</code></h2>
-<p>The rest of this page opens up what <code>prepare_rt()</code> does underneath, one step at a time. Open <code>R/prepare_data.R</code> alongside this page if you want to follow the source directly. Each step below matches one chunk of that function.</p>
+<p>The rest of this page opens up what <code>prepare_rt()</code> does underneath, one step at a time. Open <a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/prepare_data.R"><code>R/prepare_data.R</code></a> alongside this page if you want to follow the source directly. Each step below matches one chunk of that function.</p>
 <section id="reading-opus-spectra-files" class="level3">
 <h3 class="anchored" data-anchor-id="reading-opus-spectra-files">Reading OPUS spectra files</h3>
 <p>The lab’s Bruker instrument writes one OPUS binary file per scan, with a <code>.0</code> extension: <code>RT_01_001.0</code>, <code>RT_01_002.0</code>, and so on for each of the four repeat scans per sample. <code>read_opus_tbl()</code> reads every file in a folder and returns one row per scan, wavenumbers as columns.</p>
@@ -470,14 +476,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><code>potassium_cmolkg</code> above is right-skewed. 58 of the 69 measured samples sit under 1 cmol(+)/kg. One reaches 2.8. <code>3-eda.qmd</code> comes back to this, with the plots to show it and the reasons it matters for modelling.</p>
+<p><code>potassium_cmolkg</code> above is right-skewed. 58 of the 69 measured samples sit under 1 cmol(+)/kg. One reaches 2.8. <a href="./3-eda.html">Exploratory data analysis</a> comes back to this, with the plots to show it and the reasons it matters for modelling.</p>
 </div>
 </div>
 </section>
 </section>
 <section id="digging-further" class="level2">
 <h2 class="anchored" data-anchor-id="digging-further">Digging further</h2>
-<p><code>prepare_rt()</code> in <code>R/prepare_data.R</code> is exactly the four chunks above, chained. To see how <code>read_opus_tbl()</code> itself gets from a folder of <code>.0</code> files to a tibble, open <code>R/io.R</code> and step through it in the R console: build a small <code>path</code>, run <code>read_opus(dsn = path)</code> from opusreader2 on its own, inspect what comes back, then run each following line by hand. These scripts aren’t a package. <code>?read_opus_tbl</code> won’t find a help page. The roxygen comment above each function is written in the same format a package help page would show, and reads the same way top to bottom.</p>
+<p><code>prepare_rt()</code> in <a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/prepare_data.R"><code>R/prepare_data.R</code></a> is exactly the four chunks above, chained. To see how <code>read_opus_tbl()</code> itself gets from a folder of <code>.0</code> files to a tibble, open <a href="https://github.com/franckalbinet/tidy-mirs/blob/main/R/io.R"><code>R/io.R</code></a> and step through it in the R console: build a small <code>path</code>, run <code>read_opus(dsn = path)</code> from opusreader2 on its own, inspect what comes back, then run each following line by hand. These scripts aren’t a package. <code>?read_opus_tbl</code> won’t find a help page. The roxygen comment above each function is written in the same format a package help page would show, and reads the same way top to bottom.</p>
 
 
 </section>
