@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-09-29">
+<meta name="dcterms.date" content="2026-10-04">
 
 <title>Getting set up – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -261,8 +261,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#install-positron" id="toc-install-positron" class="nav-link" data-scroll-target="#install-positron">Install Positron</a></li>
   <li><a href="#positron-keyboard-shortcuts" id="toc-positron-keyboard-shortcuts" class="nav-link" data-scroll-target="#positron-keyboard-shortcuts">Positron keyboard shortcuts</a></li>
   <li><a href="#get-the-course-materials" id="toc-get-the-course-materials" class="nav-link" data-scroll-target="#get-the-course-materials">Get the course materials</a></li>
-  <li><a href="#install-the-r-packages" id="toc-install-the-r-packages" class="nav-link" data-scroll-target="#install-the-r-packages">Install the R packages</a></li>
+  <li><a href="#install-the-r-packages" id="toc-install-the-r-packages" class="nav-link" data-scroll-target="#install-the-r-packages">Install the R packages</a>
+  <ul class="collapse">
+  <li><a href="#open-the-project-folder" id="toc-open-the-project-folder" class="nav-link" data-scroll-target="#open-the-project-folder">Open the project folder</a></li>
+  <li><a href="#let-renv-install-itself" id="toc-let-renv-install-itself" class="nav-link" data-scroll-target="#let-renv-install-itself">Let renv install itself</a></li>
+  <li><a href="#install-the-build-tools" id="toc-install-the-build-tools" class="nav-link" data-scroll-target="#install-the-build-tools">Install the build tools</a></li>
+  <li><a href="#restore-the-packages" id="toc-restore-the-packages" class="nav-link" data-scroll-target="#restore-the-packages">Restore the packages</a></li>
+  <li><a href="#if-renv-fails" id="toc-if-renv-fails" class="nav-link" data-scroll-target="#if-renv-fails">If renv fails</a></li>
+  </ul></li>
   <li><a href="#check-everything-works" id="toc-check-everything-works" class="nav-link" data-scroll-target="#check-everything-works">Check everything works</a></li>
+  <li><a href="#renv-cheatsheet" id="toc-renv-cheatsheet" class="nav-link" data-scroll-target="#renv-cheatsheet">renv cheatsheet</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/franckalbinet/tidy-mirs/edit/main/0-getting-setup.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/franckalbinet/tidy-mirs/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -289,7 +297,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 29, 2026</p>
+      <p class="date">October 4, 2026</p>
     </div>
   </div>
   
@@ -310,6 +318,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Download <a href="https://positron.posit.co">Positron</a> and install it.</p>
 <p>Both Positron and RStudio are built by Posit, but only Positron keeps getting new features. RStudio keeps stability, security and bug-fix updates. Positron is built on the same open-source foundation as VS Code and runs R and Python side by side in one place. For anyone here who already works in Python day to day, the same editor covers both languages.</p>
 <p>Once Positron is installed, open it and check it has found your R installation: bottom status bar -&gt; interpreter picker, or <code>Cmd/Ctrl+Shift+P</code> -&gt; “R: Select Interpreter”.</p>
+<p>If you already use RStudio, you can keep using it for this course. Everything works the same, apart from the Positron-specific shortcuts below.</p>
 </section>
 <section id="positron-keyboard-shortcuts" class="level2">
 <h2 class="anchored" data-anchor-id="positron-keyboard-shortcuts">Positron keyboard shortcuts</h2>
@@ -369,7 +378,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="get-the-course-materials" class="level2">
 <h2 class="anchored" data-anchor-id="get-the-course-materials">Get the course materials</h2>
-<p>Go to the <a href="https://github.com/franckalbinet/tidy-mirs">course repository</a> on GitHub, click <strong>Code</strong> -&gt; <strong>Download ZIP</strong>, then unzip it. Open the unzipped folder in Positron (<code>File</code> -&gt; <code>Open Folder…</code>).</p>
+<p>Go to the <a href="https://github.com/franckalbinet/tidy-mirs">course repository</a> on GitHub, click <strong>Code</strong> -&gt; <strong>Download ZIP</strong>, then unzip it. Open the unzipped folder in your editor, as described in <a href="#open-the-project-folder">Open the project folder</a>.</p>
 <p>If you already use git day to day, cloning works just as well:</p>
 <div class="code-with-filename">
 <div class="code-with-filename-file">
@@ -381,50 +390,140 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="install-the-r-packages" class="level2">
 <h2 class="anchored" data-anchor-id="install-the-r-packages">Install the R packages</h2>
 <p>This project uses <a href="https://rstudio.github.io/renv/">renv</a> to pin exact package versions, the same idea as Python’s venv or conda. It gives you a project-local library instead of your regular R install. <code>renv.lock</code> records exactly what’s installed. Everyone in the course runs the same versions we tested against.</p>
-<p>Open the project in Positron and run, in the R console:</p>
+<section id="open-the-project-folder" class="level3">
+<h3 class="anchored" data-anchor-id="open-the-project-folder">Open the project folder</h3>
+<p>Open the course folder itself, not a single file inside it:</p>
+<ul>
+<li><strong>Positron</strong>: <code>File</code> -&gt; <code>Open Folder…</code>, then choose the course folder.</li>
+<li><strong>RStudio</strong>: double-click <code>tidy-mirs.Rproj</code> in the course folder, or use <code>File</code> -&gt; <code>Open Project…</code> and choose it.</li>
+</ul>
+<p>renv starts only when R starts inside the project folder, because the <code>.Rprofile</code> file in that folder activates it. The ZIP download includes this file, even though your file browser may hide it.</p>
+</section>
+<section id="let-renv-install-itself" class="level3">
+<h3 class="anchored" data-anchor-id="let-renv-install-itself">Let renv install itself</h3>
+<p>You do not need to install renv yourself. The first time R starts in the project folder, renv downloads and installs itself. When it is ready, the console shows a line like this:</p>
 <div class="code-with-filename">
 <div class="code-with-filename-file">
 <pre><strong>Console</strong></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">restore</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" data-filename="Console"><pre class="sourceCode default code-with-copy"><code class="sourceCode default"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>- Project '~/tidy-mirs' loaded. [renv 1.x.x]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The first run downloads and installs everything listed in <code>renv.lock</code> into a project-local library. It can take a few minutes and, on some platforms, needs to compile a couple of packages from source. It touches nothing outside this project folder.</p>
+<p>renv may also say that some packages recorded in the lockfile are not installed. This is expected at this point. The next steps install them.</p>
+<p>If you do not see the “Project loaded” line, check that you opened the folder and not a single file. Then restart R: in Positron, use the restart button in the Console panel; in RStudio, use <code>Session</code> -&gt; <code>Restart R</code>.</p>
+<p>This project was built with R 4.5.3. If your R version is different, renv shows a warning about it. You can ignore this warning: any recent 4.x release works.</p>
+</section>
+<section id="install-the-build-tools" class="level3">
+<h3 class="anchored" data-anchor-id="install-the-build-tools">Install the build tools</h3>
+<p>renv installs the exact package versions in <code>renv.lock</code>. When a version is no longer the current one on CRAN, CRAN has no ready-made binary for it, and renv compiles it from source. For this, your computer needs a compiler:</p>
+<ul>
+<li><strong>Windows</strong>: install <a href="https://cran.r-project.org/bin/windows/Rtools/">Rtools</a>, choosing the version that matches your R version.</li>
+<li><strong>macOS</strong>: install the Xcode Command Line Tools by running <code>xcode-select --install</code> in the Terminal. If a later build fails with an error that mentions <code>gfortran</code>, install it from the <a href="https://mac.r-project.org/tools/">CRAN macOS tools page</a>.</li>
+<li><strong>Linux</strong>: install your distribution’s R development package, for example <code>r-base-dev</code> on Debian and Ubuntu.</li>
+</ul>
+<p>If you already have these tools, go to the next step.</p>
+</section>
+<section id="restore-the-packages" class="level3">
+<h3 class="anchored" data-anchor-id="restore-the-packages">Restore the packages</h3>
+<p>In the R console, run:</p>
+<div class="code-with-filename">
+<div class="code-with-filename-file">
+<pre><strong>Console</strong></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">restore</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>renv lists the packages it is going to install and asks <code>Do you want to proceed? [Y/n]</code>. Type <code>Y</code> and press Enter.</p>
+<p>The first run downloads and installs everything listed in <code>renv.lock</code> into a project-local library. It can take a few minutes, longer if some packages compile from source. It touches nothing outside this project folder.</p>
+</section>
+<section id="if-renv-fails" class="level3">
+<h3 class="anchored" data-anchor-id="if-renv-fails">If renv fails</h3>
 <p><code>renv::restore()</code> can fail behind a restrictive network proxy, on a locked-down institutional laptop, or in similar cases. If it does, install the same packages directly into your regular R library instead:</p>
 <div class="code-with-filename">
 <div class="code-with-filename-file">
 <pre><strong>Console</strong></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"BiocManager"</span>)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="st">"mixOmics"</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="fu">c</span>(</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"tidyverse"</span>, <span class="st">"tidymodels"</span>, <span class="st">"here"</span>, <span class="st">"opusreader2"</span>,</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"skimr"</span>, <span class="st">"plsmod"</span>, <span class="st">"prospectr"</span>, <span class="st">"resemble"</span>, <span class="st">"hexbin"</span>, <span class="st">"glue"</span>,</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"rules"</span>, <span class="st">"Cubist"</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"BiocManager"</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="st">"mixOmics"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="fu">c</span>(</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"tidyverse"</span>, <span class="st">"tidymodels"</span>, <span class="st">"here"</span>, <span class="st">"opusreader2"</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"skimr"</span>, <span class="st">"plsmod"</span>, <span class="st">"prospectr"</span>, <span class="st">"resemble"</span>, <span class="st">"hexbin"</span>, <span class="st">"glue"</span>,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"rules"</span>, <span class="st">"Cubist"</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Run the two parts in this order. <code>mixOmics</code> comes from Bioconductor, not CRAN, so <code>install.packages()</code> cannot find it. <code>plsmod</code> needs <code>mixOmics</code>, and cannot install until <code>mixOmics</code> is there.</p>
 <p>This gets you everything you need for the course. It isn’t version-pinned. Let us know if something behaves differently from the demo.</p>
 </section>
+</section>
 <section id="check-everything-works" class="level2">
 <h2 class="anchored" data-anchor-id="check-everything-works">Check everything works</h2>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(opusreader2)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(prospectr)</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(resemble)</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plsmod)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rules)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Cubist)</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">packageVersion</span>(<span class="st">"mixOmics"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(opusreader2)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(prospectr)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(resemble)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plsmod)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rules)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Cubist)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="fu">packageVersion</span>(<span class="st">"mixOmics"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] '6.34.0'</code></pre>
 </div>
 </div>
+<p>If you installed the packages with <code>renv::restore()</code>, also check that your project library matches <code>renv.lock</code>:</p>
+<div class="code-with-filename">
+<div class="code-with-filename-file">
+<pre><strong>Console</strong></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">status</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>It should report that no issues were found and the project is in a consistent state.</p>
 <p>If that runs without errors, you’re set up for the course.</p>
+</section>
+<section id="renv-cheatsheet" class="level2">
+<h2 class="anchored" data-anchor-id="renv-cheatsheet">renv cheatsheet</h2>
+<p>Run these in the R console, with the course project open.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Command</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>renv::restore()</code></td>
+<td>Installs the package versions recorded in <code>renv.lock</code>.</td>
+</tr>
+<tr class="even">
+<td><code>renv::status()</code></td>
+<td>Shows where your project library and <code>renv.lock</code> disagree.</td>
+</tr>
+<tr class="odd">
+<td><code>renv::install("pkg")</code></td>
+<td>Installs a package into the project library. Use <code>"bioc::pkg"</code> for Bioconductor packages.</td>
+</tr>
+<tr class="even">
+<td><code>renv::snapshot()</code></td>
+<td>Records the packages you now have in <code>renv.lock</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>renv::update()</code></td>
+<td>Updates the project’s packages to their latest versions.</td>
+</tr>
+<tr class="even">
+<td><code>renv::deactivate()</code></td>
+<td>Turns renv off for this project, so R uses your regular library again. <code>renv::activate()</code> turns it back on.</td>
+</tr>
+</tbody>
+</table>
+<p>You only need <code>restore()</code> and <code>status()</code> for this course. If you run <code>snapshot()</code> or <code>update()</code>, your <code>renv.lock</code> no longer matches the versions we tested against.</p>
 
 
 </section>
