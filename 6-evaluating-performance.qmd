@@ -53,7 +53,7 @@ The shared settings come from [`R/config.R`](https://github.com/franckalbinet/ti
 
 ## Getting data
 
-`EXCLUDED_SAMPLES`, `RT_44` and `RT_42`, are left out. [Outlier detection](5-outlier-detection.qmd) flags their spectra as the two most unusual.
+`EXCLUDED_SAMPLES`, `RT_44` and `RT_42`, are left out. [Outlier detection](5-outlier-detection.qmd) flags their spectra as the two most unusual. `RT_44` has almost no lab data. `RT_42` is not a measurement error. It is most likely an organic soil, such as a peat: its total and organic carbon are both 49%, and its pH is 3.3. A model cannot learn a soil type from a single sample, so leaving `RT_42` out is a judgement about what the model can cover, not only a distance rule.
 
 ```{r}
 data <- prepare_rt(SPECTRA_DIR, SOIL_PROP_FILE) |> filter(!smp_id %in% EXCLUDED_SAMPLES)

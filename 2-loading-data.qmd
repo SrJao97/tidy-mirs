@@ -84,6 +84,15 @@ Interactively (e.g. in Positron or RStudio), `view(soil_prop)` opens the data vi
 soil_prop
 ```
 
+### Fixing a placeholder value
+
+`RT_44` has a clay content of exactly 0%. Every other property of `RT_44`, except pH, is missing. A soil with no clay at all is implausible, so the 0 is most likely a placeholder for a missing value. `if_else()` replaces it with `NA`, R's code for a missing value. It changes only that one value: the sample, its spectrum and its pH stay.
+
+```{r}
+soil_prop <- soil_prop |>
+  mutate(clay_perc = if_else(sample_id == "RT_44" & clay_perc == 0, NA_real_, clay_perc))
+```
+
 ### Joining spectra and soil properties
 
 The two tables share sample IDs under different names: `smp_id` in the averaged spectra, `sample_id` in the wet chemistry. `left_join()` takes both names when they don't match.
@@ -108,4 +117,4 @@ data |>
 
 ## Digging further
 
-`prepare_rt()` in [`R/prepare_data.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/prepare_data.R) is exactly the four chunks above, chained. To see how `read_opus_tbl()` itself gets from a folder of `.0` files to a tibble, open [`R/io.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/io.R) and step through it in the R console: build a small `path`, run `read_opus(dsn = path)` from opusreader2 on its own, inspect what comes back, then run each following line by hand. These scripts aren't a package. `?read_opus_tbl` won't find a help page. The roxygen comment above each function is written in the same format a package help page would show, and reads the same way top to bottom.
+`prepare_rt()` in [`R/prepare_data.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/prepare_data.R) is exactly the steps above, chained. To see how `read_opus_tbl()` itself gets from a folder of `.0` files to a tibble, open [`R/io.R`](https://github.com/franckalbinet/tidy-mirs/blob/main/R/io.R) and step through it in the R console: build a small `path`, run `read_opus(dsn = path)` from opusreader2 on its own, inspect what comes back, then run each following line by hand. These scripts aren't a package. `?read_opus_tbl` won't find a help page. The roxygen comment above each function is written in the same format a package help page would show, and reads the same way top to bottom.
