@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Franck Albinet">
-<meta name="dcterms.date" content="2026-10-04">
+<meta name="dcterms.date" content="2026-10-05">
 
 <title>Getting set up – Soil mid-infrared spectroscopy with tidymodels</title>
 <style>
@@ -273,7 +273,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#let-renv-install-itself" id="toc-let-renv-install-itself" class="nav-link" data-scroll-target="#let-renv-install-itself">Let renv install itself</a></li>
   <li><a href="#install-the-build-tools" id="toc-install-the-build-tools" class="nav-link" data-scroll-target="#install-the-build-tools">Install the build tools</a></li>
   <li><a href="#restore-the-packages" id="toc-restore-the-packages" class="nav-link" data-scroll-target="#restore-the-packages">Restore the packages</a></li>
-  <li><a href="#if-renv-fails" id="toc-if-renv-fails" class="nav-link" data-scroll-target="#if-renv-fails">If renv fails</a></li>
+  <li><a href="#fresh-renv" id="toc-fresh-renv" class="nav-link" data-scroll-target="#fresh-renv">If <code>renv::restore()</code> fails: start a fresh renv</a></li>
+  <li><a href="#if-renv-still-fails" id="toc-if-renv-still-fails" class="nav-link" data-scroll-target="#if-renv-still-fails">If renv still fails</a></li>
   </ul></li>
   <li><a href="#check-everything-works" id="toc-check-everything-works" class="nav-link" data-scroll-target="#check-everything-works">Check everything works</a></li>
   <li><a href="#renv-cheatsheet" id="toc-renv-cheatsheet" class="nav-link" data-scroll-target="#renv-cheatsheet">renv cheatsheet</a></li>
@@ -303,7 +304,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 4, 2026</p>
+      <p class="date">October 5, 2026</p>
     </div>
   </div>
   
@@ -416,7 +417,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>renv may also say that some packages recorded in the lockfile are not installed. This is expected at this point. The next steps install them.</p>
 <p>If you do not see the “Project loaded” line, check that you opened the folder and not a single file. Then restart R: in Positron, use the restart button in the Console panel; in RStudio, use <code>Session</code> -&gt; <code>Restart R</code>.</p>
-<p>This project was built with R 4.5.3. If your R version is different, renv shows a warning about it. You can ignore this warning: any recent 4.x release works.</p>
+<p>This project was built with R 4.5.3. With any R 4.5.x release, <code>renv::restore()</code> installs the versions we tested against. If your R version is different, renv shows a warning about it. With a newer R version, such as R 4.6, the restore fails: follow <a href="#fresh-renv">Start a fresh renv</a> instead.</p>
 </section>
 <section id="install-the-build-tools" class="level3">
 <h3 class="anchored" data-anchor-id="install-the-build-tools">Install the build tools</h3>
@@ -440,21 +441,67 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>renv lists the packages it is going to install and asks <code>Do you want to proceed? [Y/n]</code>. Type <code>Y</code> and press Enter.</p>
 <p>The first run downloads and installs everything listed in <code>renv.lock</code> into a project-local library. It can take a few minutes, longer if some packages compile from source. It touches nothing outside this project folder.</p>
 </section>
-<section id="if-renv-fails" class="level3">
-<h3 class="anchored" data-anchor-id="if-renv-fails">If renv fails</h3>
-<p><code>renv::restore()</code> can fail behind a restrictive network proxy, on a locked-down institutional laptop, or in similar cases. If it does, install the same packages directly into your regular R library instead:</p>
+<section id="fresh-renv" class="level3">
+<h3 class="anchored" data-anchor-id="fresh-renv">If <code>renv::restore()</code> fails: start a fresh renv</h3>
+<p><code>renv.lock</code> also records the Bioconductor release the course was built with: 3.22, which works only with R 4.5. If you use a newer R version, such as R 4.6, <code>renv::restore()</code> fails with an error about the Bioconductor version. In this case, remove the course’s renv setup and build a new one for your R version. Run each step in the R console, with the course project open.</p>
+<ol type="1">
+<li><p>Remove the course’s renv setup:</p>
 <div class="code-with-filename">
 <div class="code-with-filename-file">
 <pre><strong>Console</strong></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"BiocManager"</span>)</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="st">"mixOmics"</span>)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="fu">c</span>(</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"tidyverse"</span>, <span class="st">"tidymodels"</span>, <span class="st">"here"</span>, <span class="st">"opusreader2"</span>,</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"skimr"</span>, <span class="st">"plsmod"</span>, <span class="st">"prospectr"</span>, <span class="st">"resemble"</span>, <span class="st">"hexbin"</span>, <span class="st">"glue"</span>,</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"rules"</span>, <span class="st">"Cubist"</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">deactivate</span>(<span class="at">clean =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>This deletes the <code>renv/</code> folder and <code>renv.lock</code>, and removes the line in <code>.Rprofile</code> that starts renv. Then restart R.</p></li>
+<li><p>Install renv in your regular R library, then create a new, empty renv project:</p>
+<div class="code-with-filename">
+<div class="code-with-filename-file">
+<pre><strong>Console</strong></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"renv"</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">init</span>(<span class="at">bare =</span> <span class="cn">TRUE</span>, <span class="at">bioconductor =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><code>bare = TRUE</code> creates the project without installing any packages. <code>bioconductor = TRUE</code> selects the Bioconductor release that matches your R version. If R does not restart on its own, restart it.</p></li>
+<li><p>Install the packages into the project library:</p>
+<div class="code-with-filename">
+<div class="code-with-filename-file">
+<pre><strong>Console</strong></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">install</span>(<span class="fu">c</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bioc::mixOmics"</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"tidyverse"</span>, <span class="st">"tidymodels"</span>, <span class="st">"here"</span>, <span class="st">"opusreader2"</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"skimr"</span>, <span class="st">"plsmod"</span>, <span class="st">"prospectr"</span>, <span class="st">"resemble"</span>, <span class="st">"hexbin"</span>, <span class="st">"glue"</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"rules"</span>, <span class="st">"Cubist"</span>,</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"rmarkdown"</span>, <span class="st">"knitr"</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The <code>bioc::</code> prefix tells renv to install <code>mixOmics</code> from Bioconductor. renv installs <code>BiocManager</code> itself if it needs it. <code>rmarkdown</code> and <code>knitr</code> are needed only to render the pages with Quarto.</p></li>
+<li><p>Record the installed packages in a new <code>renv.lock</code>:</p>
+<div class="code-with-filename">
+<div class="code-with-filename-file">
+<pre><strong>Console</strong></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">snapshot</span>(<span class="at">type =</span> <span class="st">"all"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><code>type = "all"</code> records every package in the project library.</p></li>
+</ol>
+<p>You now have the current versions of the packages, not the versions we tested against. Let us know if something behaves differently from the demo.</p>
+</section>
+<section id="if-renv-still-fails" class="level3">
+<h3 class="anchored" data-anchor-id="if-renv-still-fails">If renv still fails</h3>
+<p>Neither <code>renv::restore()</code> nor a fresh renv may work behind a restrictive network proxy, on a locked-down institutional laptop, or in similar cases. If this happens, install the same packages directly into your regular R library instead:</p>
+<div class="code-with-filename">
+<div class="code-with-filename-file">
+<pre><strong>Console</strong></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"BiocManager"</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="st">"mixOmics"</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="fu">c</span>(</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"tidyverse"</span>, <span class="st">"tidymodels"</span>, <span class="st">"here"</span>, <span class="st">"opusreader2"</span>,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"skimr"</span>, <span class="st">"plsmod"</span>, <span class="st">"prospectr"</span>, <span class="st">"resemble"</span>, <span class="st">"hexbin"</span>, <span class="st">"glue"</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"rules"</span>, <span class="st">"Cubist"</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Run the two parts in this order. <code>mixOmics</code> comes from Bioconductor, not CRAN, so <code>install.packages()</code> cannot find it. <code>plsmod</code> needs <code>mixOmics</code>, and cannot install until <code>mixOmics</code> is there.</p>
 <p>This gets you everything you need for the course. It isn’t version-pinned. Let us know if something behaves differently from the demo.</p>
@@ -463,17 +510,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="check-everything-works" class="level2">
 <h2 class="anchored" data-anchor-id="check-everything-works">Check everything works</h2>
 <div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(opusreader2)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(prospectr)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(resemble)</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plsmod)</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rules)</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Cubist)</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="fu">packageVersion</span>(<span class="st">"mixOmics"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(opusreader2)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(prospectr)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(resemble)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plsmod)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rules)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Cubist)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="fu">packageVersion</span>(<span class="st">"mixOmics"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] '6.34.0'</code></pre>
 </div>
@@ -483,7 +530,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-with-filename-file">
 <pre><strong>Console</strong></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">status</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11" data-filename="Console"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>renv<span class="sc">::</span><span class="fu">status</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>It should report that no issues were found and the project is in a consistent state.</p>
 <p>If that runs without errors, you’re set up for the course.</p>
